@@ -4,7 +4,7 @@ env:
   APP_NAME: CMS-BACKEND-API
   PROJECT_NAME: CMS-BACKEND-API
   DOCKER_COMPOSE_PATH: /root/app/docker-compose.yml
-  DOCKER_REGISTRY: ghcr.io/code4govtech/dmp-cms-backend-api
+  DOCKER_REGISTRY: ghcr.io/code4govtech/DMP-CMS-Backend-API
   DOT_ENV_FILE_NAME: env.data
   
 
