@@ -6,7 +6,7 @@ env:
   DOCKER_COMPOSE_PATH: /root/app/docker-compose.yml
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DOCKER_REGISTRY: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  DOCKER_REGISTRY: ghcr.io/Code4GovTech/DMP-CMS-Backend-API
   DOT_ENV_FILE_NAME: env.data
   
 
