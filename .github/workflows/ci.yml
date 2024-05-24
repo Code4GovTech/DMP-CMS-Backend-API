@@ -6,7 +6,6 @@ env:
   DOCKER_COMPOSE_PATH: /root/app/docker-compose.yml
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DOCKER_REGISTRY: ghcr.io/code4govtech/dmp-cms-backend-api
   DOT_ENV_FILE_NAME: env.data
   
 
@@ -92,17 +91,17 @@ jobs:
 
       - name: Build ${{ env.APP_NAME }} Docker image
         run: |
-          docker build -t ${{ env.DOCKER_REGISTRY }}:${{ env.TAG_LATEST }} .
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_LATEST }} .
       
       - name: Add tag to Docker image
         run: |
           echo ${{ github.sha }}
-          docker tag ${{ env.DOCKER_REGISTRY }}:${{ env.TAG_LATEST }} ${{ env.DOCKER_REGISTRY }}:${{ env.TAG_ENV_COMMIT }}
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_LATEST }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_ENV_COMMIT }}
       
       - name: Push Docker image to GitHub Packages
         run: | 
-          docker push ${{ env.DOCKER_REGISTRY }}:${{ env.TAG_LATEST }}
-          docker push ${{ env.DOCKER_REGISTRY }}:${{ env.TAG_ENV_COMMIT }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_LATEST }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_ENV_COMMIT }}
 
   deploy:
     name: Deployment
@@ -117,7 +116,7 @@ jobs:
         env:
           DOCKER_COMPOSE_PATH: ${{ env.DOCKER_COMPOSE_PATH }}
           APP_NAME: ${{ env.APP_NAME }}
-          DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+          DOCKER_REGISTRY: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         with:
           host: ${{ vars.DEV_SERVER_HOST }}
           username: ${{ vars.DEV_SERVER_USERNAME }}
