@@ -1,5 +1,5 @@
 dmp_2/__pycache__/*
-
-dmp_2/.env
+.env
 env/*
 
+__pycache__/*
