@@ -135,6 +135,7 @@ jobs:
           script_stop: true
           envs: DOCKER_COMPOSE_PATH,APP_NAME,DOCKER_REGISTRY
           script: |
+            echo "Docker Compose Path $DOCKER_COMPOSE_PATH"
             docker compose pull
             docker compose -f $DOCKER_COMPOSE_PATH up -d
 
