@@ -6,7 +6,7 @@ env:
   DOCKER_COMPOSE_PATH: /root/app/docker-compose.yml
   REGISTRY: ghcr.io
   DOCKER_REGISTRY: ghcr.io/code4govtech/dmp-cms-backend-api
-  DOT_ENV_FILE_NAME: env.data
+  DOT_ENV_FILE_NAME: env.dmp-cms-backend-api
   
 
 on:
@@ -135,19 +135,7 @@ jobs:
           script_stop: true
           envs: DOCKER_COMPOSE_PATH,APP_NAME,DOCKER_REGISTRY
           script: |
-            echo "==============================="
-            echo "Deploying to Dev environment running on Docker Compose"
-            echo "==============================="
-            echo "Docker Compose Path $DOCKER_COMPOSE_PATH"
-            echo "App Name $APP_NAME"
-            echo "Docker Registry $DOCKER_REGISTRY"
-            COMMIT=$(echo $GITHUB_SHA | cut -c1-5)
-            TAG_ENV_COMMIT="dev-${COMMIT}"
-            CURRENT_TAG=$(grep "${DOCKER_REGISTRY}:" $DOCKER_COMPOSE_PATH | sed -n 's/.*'"${APP_NAME}"':\([^"]*\).*/\1/p')
-            echo "Current Tag: $CURRENT_TAG"
-            echo "Latest Tag: $TAG_ENV_COMMIT"
-            sudo sed -i 's|'"${DOCKER_REGISTRY}:${CURRENT_TAG}"'|'"${DOCKER_REGISTRY}:${TAG_ENV_COMMIT}"'|g' $DOCKER_COMPOSE_PATH
-            docker pull $DOCKER_REGISTRY:$TAG_ENV_COMMIT
+            docker compose pull
             docker compose -f $DOCKER_COMPOSE_PATH up -d
 
       - name: Deploy to Prod environment
