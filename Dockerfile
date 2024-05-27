@@ -18,4 +18,5 @@ ENV FLASK_APP=wsgi.py
 ENV FLASK_RUN_HOST=0.0.0.0
 
 # Run the application
-CMD ["gunicorn", "wsgi"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "wsgi:app"]
+
