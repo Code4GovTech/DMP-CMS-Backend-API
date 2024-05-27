@@ -59,9 +59,20 @@ def get_data():
 def group_by_owner(data):
     grouped_data = defaultdict(list)
     for record in data:
-        owner = record['owner']
-        grouped_data[owner].append(record)
-    return grouped_data
+      owner = record['owner']
+      grouped_data[owner].append(record)
+        
+        
+    #Arrange data as reponse format
+    res = []
+    for val in grouped_data:
+      dict_ = {}
+      dict_['org_name'] = val
+      dict_['issues'] = grouped_data[val]
+      
+      res.append(dict_)
+      
+    return {"issues":res}
 
 @app.route('/api/issues', methods=['GET'])
 def get_issues():
@@ -124,6 +135,7 @@ def get_issues_by_owner(owner):
         if not response.data:
             return jsonify({'error': "No data found"}), 500
         data = response.data
+        data = [{**item, "name": item["owner"]} for item in data]
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
