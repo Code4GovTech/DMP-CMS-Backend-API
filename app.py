@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify,request,url_for
 from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
@@ -17,8 +17,32 @@ headers = {
         "X-GitHub-Api-Version": "2022-11-28"
     }
 
-@app.route('/api/greeting', methods=['GET'])
-def greeting():
+
+
+# Define a list of routes that should be protected
+protected_routes = ['/greeting', '/get-data', '/issues', '/issues/<owner>', '/issues/<owner>/<issue>']
+SECRET_KEY =os.getenv('SECRET_KEY')
+
+protected_routes = [
+    re.compile(r'^/greeting$'),
+    re.compile(r'^/get-data$'),
+    re.compile(r'^/issues$'),
+    re.compile(r'^/issues/[^/]+$'),  # Matches '/issues/<owner>'
+    re.compile(r'^/issues/[^/]+/[^/]+$')  # Matches '/issues/<owner>/<issue>'
+]
+
+# Before request handler to check for the presence of the secret key
+@app.before_request
+def check_secret_key():
+    for route_pattern in protected_routes:
+        if route_pattern.match(request.path):
+            secret_key = request.headers.get('X-Secret-Key')
+            if secret_key != SECRET_KEY:
+                return jsonify({'message': 'Unauthorized access'}), 401
+            break  # Stop checking if the current route matches
+
+@app.route('/greeting', methods=['GET'])
+def greeting():    
     """
     A simple greeting endpoint.
     ---
@@ -37,7 +61,7 @@ def greeting():
     }
     return jsonify(response)
 
-@app.route('/api/get-data', methods=['GET'])
+@app.route('/get-data', methods=['GET'])
 def get_data():
     """
     Fetch data from Supabase.
@@ -82,7 +106,7 @@ def group_by_owner(data):
       
     return {"issues":res}
 
-@app.route('/api/issues', methods=['GET'])
+@app.route('/issues', methods=['GET'])
 def get_issues():
     """
     Fetch all issues and group by owner.
@@ -112,7 +136,7 @@ def get_issues():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/issues/<owner>', methods=['GET'])
+@app.route('/issues/<owner>', methods=['GET'])
 def get_issues_by_owner(owner):
     """
     Fetch issues by owner.
@@ -179,7 +203,7 @@ def find_week_avg(url):
     return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url
       
 
-@app.route('/api/mentors', methods=['GET'])
+@app.route('/mentors', methods=['GET'])
 def find_mentors(url):
     response = requests.get(url,headers=headers)
 
@@ -232,7 +256,7 @@ def get_pr_details(url):
     raise Exception
   
 
-@app.route('/api/issues/<owner>/<issue>', methods=['GET'])
+@app.route('/issues/<owner>/<issue>', methods=['GET'])
 def get_issues_by_owner_id(owner, issue):
   """
     Fetch issues by owner and issue number.
