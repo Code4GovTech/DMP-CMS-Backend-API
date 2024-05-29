@@ -2,12 +2,12 @@ from flask import Flask, jsonify,request,url_for
 from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
-import re,markdown2,requests,os
+import re,os
+from utils import *
 
 app = Flask(__name__)
 
 Swagger(app)
-
 
 GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
 
@@ -16,7 +16,6 @@ headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-
 
 
 # Define a list of routes that should be protected
@@ -79,24 +78,8 @@ def get_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def group_by_owner(data):
-    grouped_data = defaultdict(list)
-    for record in data:
-      owner = record['owner']
-      grouped_data[owner].append(record)
-        
-        
-    #Arrange data as reponse format
-    res = []
-    for val in grouped_data:
-      dict_ = {}
-      dict_['org_name'] = val
-      dict_['issues'] = grouped_data[val]
-      
-      res.append(dict_)
-      
-    return {"issues":res}
 
+      
 @app.route('/issues', methods=['GET'])
 def get_issues():
     """
@@ -122,8 +105,21 @@ def get_issues():
     try:
         response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
         data = response.data
-        grouped_data = group_by_owner(data)
+        
+        #group data based on issues
+        grouped_data = defaultdict(list)
+        for record in data:
+            issue_url = record['issue_url']
+            grouped_data[issue_url].append({
+                'id': record['id'],
+                'name': record['body_text']
+            })
+
+        result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
+              
+        grouped_data = group_by_owner(result)
         return jsonify(grouped_data)
+      
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -154,7 +150,8 @@ def get_issues_by_owner(owner):
               type: string
     """
     try:
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).execute()
+        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).order('comment_updated_at', desc=True).execute()
+
         if not response.data:
             return jsonify({'error': "No data found"}), 500
         data = response.data
@@ -165,86 +162,6 @@ def get_issues_by_owner(owner):
         return jsonify({'error': str(e)}), 500
       
 
-  
-def find_week_avg(url):
-  # url = "https://api.github.com/repos/VedantKhairnar/dmp-backend-test-repo/issues/comments"
-
-  response = requests.get(url,headers=headers)
-
-  if response.status_code == 200:
-    issue_details = response.json()
-    plain_text_body = markdown2.markdown(issue_details[0]['body'])
-            
-    tasks = re.findall(r'\[(x| )\]', plain_text_body)
-    total_tasks = len(tasks)
-    completed_tasks = tasks.count('x')
-    
-    avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
-    
-    #find weekly goal html urls
-    w_goal_url = None
-    w_learn_url = None
-    
-    for item in issue_details:
-      if "Weekly Goals" in item['body']:
-        w_goal_url = item['html_url']
-      if "Weekly Learnings" in item['body']:
-        w_learn_url = item['html_url']
-    
-    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url
-      
-
-@app.route('/mentors', methods=['GET'])
-def find_mentors(url):
-    response = requests.get(url,headers=headers)
-
-    if response.status_code == 200:
-        issue_details = response.json()
-
-        issue_body = issue_details['body']
-        pattern = r"## Mentors\s*([\s\S]+?)\s*##"
-        match = re.search(pattern, issue_body)
-
-        if match:
-            mentors_text = match.group(1).strip()
-            # Extract individual mentor usernames
-            mentors = [mentor.strip() for mentor in mentors_text.split(',')]
-        else:
-            mentors = []
-        api_base_url = "https://api.github.com/users/"
-
-        ment_username = []
-        for val in mentors:            
-          url = f"{api_base_url}{val[1:]}"
-          username = requests.get(url)
-          ment_username.append(username.json()['login'])
-          
-        return mentors,ment_username
-    else:
-      return [],[]
-
-def get_pr_details(url):
-  try:
-    issue_url = url
-    url_parts = issue_url.split("/")
-    owner = url_parts[4]
-    repo = url_parts[5]
-    issue_number = url_parts[7]
-
-    # GitHub API endpoint to get pull requests for the repository
-    pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
-
-    # Send GET request to GitHub API with authentication
-    response = requests.get(pulls_url, headers=headers)
-    if response.status_code == 200:
-        pulls = response.json()
-        return pulls      
-    else:
-      return []
-        
-        
-  except Exception as e:
-    raise Exception
   
 
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
@@ -287,12 +204,14 @@ def get_issues_by_owner_id(owner, issue):
     data = response.data
     
     final_data = []
-    
     for val in data:
       issue_url = "https://api.github.com/repos/{}/{}/issues/comments".format(val['owner'],val['repo'])
       week_avg ,cont_name,cont_id,w_goal,w_learn = find_week_avg(issue_url)
+      mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
       
-      mentors,ment_usernames = find_mentors(val['issue_url']) if val['issue_url'] else [],[]
+      mentors = mentors_data['mentors']
+      ment_usernames = mentors_data['mentor_usernames']
+      
       res = {
         "name": owner,
         "description": None,
