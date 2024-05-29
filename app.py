@@ -31,15 +31,6 @@ protected_routes = [
     re.compile(r'^/issues/[^/]+/[^/]+$')  # Matches '/issues/<owner>/<issue>'
 ]
 
-# Before request handler to check for the presence of the secret key
-@app.before_request
-def check_secret_key():
-    for route_pattern in protected_routes:
-        if route_pattern.match(request.path):
-            secret_key = request.headers.get('X-Secret-Key')
-            if secret_key != SECRET_KEY:
-                return jsonify({'message': 'Unauthorized access'}), 401
-            break  # Stop checking if the current route matches
 
 @app.route('/greeting', methods=['GET'])
 def greeting():    
@@ -324,5 +315,18 @@ def get_issues_by_owner_id(owner, issue):
   except Exception as e:
     return jsonify({'error': str(e)}), 500
 
+
+
+# Before request handler to check for the presence of the secret key
+@app.before_request
+def check_secret_key():
+  for route_pattern in protected_routes:
+    if route_pattern.match(request.path):
+      secret_key = request.headers.get('X-Secret-Key')
+      if secret_key != SECRET_KEY:
+        return jsonify({'message': 'Unauthorized access'}), 401
+      break  # Stop checking if the current route matches
+          
+          
 if __name__ == '__main__':
     app.run(debug=True)
