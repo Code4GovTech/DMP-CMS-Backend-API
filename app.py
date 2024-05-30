@@ -261,7 +261,7 @@ def get_issues_by_owner_id(owner, issue):
 
 
 # Before request handler to check for the presence of the secret key
-@app.before_request
+# @app.before_request
 def check_secret_key():
   for route_pattern in protected_routes:
     if route_pattern.match(request.path):
