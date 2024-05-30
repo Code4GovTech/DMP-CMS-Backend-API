@@ -4,11 +4,13 @@ from collections import defaultdict
 from flasgger import Swagger
 import re,os
 from utils import *
-from flask_cors import CORS
+from flask_cors import CORS,cross_origin
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, support_credentials=True)
+
 
 Swagger(app)
 
@@ -33,7 +35,7 @@ protected_routes = [
     re.compile(r'^/issues/[^/]+/[^/]+$')  # Matches '/issues/<owner>/<issue>'
 ]
 
-
+@cross_origin() # added this to my endpoint
 @app.route('/greeting', methods=['GET'])
 def greeting():    
     """
@@ -54,6 +56,7 @@ def greeting():
     }
     return jsonify(response)
 
+@cross_origin()
 @app.route('/get-data', methods=['GET'])
 def get_data():
     """
@@ -82,7 +85,7 @@ def get_data():
         return jsonify({'error': str(e)}), 500
 
 
-      
+@cross_origin()
 @app.route('/issues', methods=['GET'])
 def get_issues():
     """
@@ -125,7 +128,8 @@ def get_issues():
       
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+      
+@cross_origin()
 @app.route('/issues/<owner>', methods=['GET'])
 def get_issues_by_owner(owner):
     """
@@ -166,7 +170,7 @@ def get_issues_by_owner(owner):
       
 
   
-
+@cross_origin()
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
 def get_issues_by_owner_id(owner, issue):
   """
