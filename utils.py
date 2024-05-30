@@ -48,7 +48,7 @@ def get_issue_details(issue_url):
     response = requests.get(issue_api_url, headers=headers)
     if response.status_code == 200:
         issue_data = response.json()
-        return [{'id': issue['id'], 'name': issue['title']} for issue in issue_data if "pull_request" not in issue]
+        return [{'id': issue['id'], 'name': issue['title'],'html_url':issue['html_url']} for issue in issue_data if "pull_request" not in issue]
     else:
         return {'id': None, 'name': None}
       
