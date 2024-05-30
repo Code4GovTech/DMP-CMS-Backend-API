@@ -35,8 +35,8 @@ protected_routes = [
     re.compile(r'^/issues/[^/]+/[^/]+$')  # Matches '/issues/<owner>/<issue>'
 ]
 
-@cross_origin() # added this to my endpoint
 @app.route('/greeting', methods=['GET'])
+@cross_origin() # added this to my endpoint
 def greeting():    
     """
     A simple greeting endpoint.
@@ -56,8 +56,8 @@ def greeting():
     }
     return jsonify(response)
 
-@cross_origin()
 @app.route('/get-data', methods=['GET'])
+@cross_origin()
 def get_data():
     """
     Fetch data from Supabase.
@@ -85,8 +85,8 @@ def get_data():
         return jsonify({'error': str(e)}), 500
 
 
-@cross_origin()
 @app.route('/issues', methods=['GET'])
+@cross_origin()
 def get_issues():
     """
     Fetch all issues and group by owner.
@@ -129,8 +129,8 @@ def get_issues():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
       
-@cross_origin()
 @app.route('/issues/<owner>', methods=['GET'])
+@cross_origin()
 def get_issues_by_owner(owner):
     """
     Fetch issues by owner.
@@ -170,8 +170,8 @@ def get_issues_by_owner(owner):
       
 
   
-@cross_origin()
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
+@cross_origin()
 def get_issues_by_owner_id(owner, issue):
   """
     Fetch issues by owner and issue number.
