@@ -4,9 +4,11 @@ from collections import defaultdict
 from flasgger import Swagger
 import re,os
 from utils import *
+from flask_cors import CORS
+
 
 app = Flask(__name__)
-
+CORS(app)
 Swagger(app)
 
 GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
@@ -105,7 +107,7 @@ def get_issues():
     try:
         response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
         data = response.data
-        
+                
         #group data based on issues
         grouped_data = defaultdict(list)
         for record in data:
@@ -206,7 +208,7 @@ def get_issues_by_owner_id(owner, issue):
     final_data = []
     for val in data:
       issue_url = "https://api.github.com/repos/{}/{}/issues/comments".format(val['owner'],val['repo'])
-      week_avg ,cont_name,cont_id,w_goal,w_learn = find_week_avg(issue_url)
+      week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs = find_week_avg(issue_url)
       mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
       
       mentors = mentors_data['mentors']
@@ -214,7 +216,7 @@ def get_issues_by_owner_id(owner, issue):
       
       res = {
         "name": owner,
-        "description": None,
+        "description": mentors_data['desc'],
         "mentor_name": ment_usernames,
         "mentor_id": mentors,
         "contributor_name":cont_name ,
@@ -227,7 +229,24 @@ def get_issues_by_owner_id(owner, issue):
         "issue_url":val['issue_url'],
         "pr_details":get_pr_details(val['issue_url'])
       }
+     
+      transformed = {"pr_details": []}
+
+      for pr in res.get("pr_details", []):
+        transformed["pr_details"].append({
+            "id": pr.get("id", ""),
+            "name": pr.get("title", ""),
+            "week": pr.get("week", ""),
+            "link": pr.get("html_url", ""),
+            "status": pr.get("state", "")
+        })
+                
+      res['pr_details'] = transformed
       
+      # Adding each week as a separate key
+      # for week in weekby_avgs:
+      #   res.update(week)
+        
       # final_data.append(res)
     
       return jsonify(res),200

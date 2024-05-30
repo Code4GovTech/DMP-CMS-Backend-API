@@ -48,9 +48,10 @@ def get_issue_details(issue_url):
     response = requests.get(issue_api_url, headers=headers)
     if response.status_code == 200:
         issue_data = response.json()
-        return [{'id': issue['id'], 'name': issue['title']} for issue in issue_data]
+        return [{'id': issue['id'], 'name': issue['title']} for issue in issue_data if "pull_request" not in issue]
     else:
         return {'id': None, 'name': None}
+      
       
 
 def group_by_owner(data):    
@@ -74,14 +75,61 @@ def group_by_owner(data):
         org_dict[org_id]['org_name'] = org_name
         
     return  list(org_dict.values())
+
+
+def find_week_data(issue_details):
+    try:
+        #find how many weeks in reponse
+        weekly_updates = []
+        for item in issue_details:
+            if "Weekly Goals" in item["body"]:
+                week_match = re.search(r'Week \d+', item["body"])
+                if week_match:
+                    weekly_updates.append({
+                        "id": item["id"],
+                        "val":item,
+                        "week": week_match.group(0)
+                    })
+                    
+        val = []
+                            
+        for week in weekly_updates:
+            
+            plain_text_body = markdown2.markdown(week['val']['body'])
+                
+            tasks = re.findall(r'\[(x| )\]', plain_text_body)
+            total_tasks = len(tasks)
+            completed_tasks = tasks.count('x')
+            
+            avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
+            
+            # week['avg'] = avg
+            # week['val'] = None
+            week[str(week['week'])+' percentage'] = avg
+            del week['val']
+            del week['id']
+            del week['week']
+            val.append(week)
+            
+        return val
+                                    
+    except Exception as e:
+        return {}
+    
       
   
 def find_week_avg(url):
 
   response = requests.get(url,headers=headers)
   if response.status_code == 200:
-    issue_details = response.json()              
+    issue_details = response.json()
     
+    # week_avgs = find_week_data(issue_details) phase 2
+    week_avgs = None
+                              
+    w_learn_url = None
+    w_goal_url = None
+    avg = 0
     for item in issue_details:
         
         if "Weekly Goals" in item['body']:
@@ -93,22 +141,12 @@ def find_week_avg(url):
             completed_tasks = tasks.count('x')
             
             avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
-            
-            #find weekly goal html urls
-            w_goal_url = None
-            w_learn_url = None
-        else:
-            avg = 0
-            
-            #find weekly goal html urls
-            w_goal_url = None
-            w_learn_url = None
-            
-    
+                
         if "Weekly Learnings" in item['body']:
             w_learn_url = item['html_url']
+        
     
-    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url
+    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs
       
 
 def find_mentors(url):
@@ -119,6 +157,11 @@ def find_mentors(url):
 
         issue_body = issue_details['body']
         pattern = r"## Mentors\s*([\s\S]+?)\s*##"
+        disc_pattern = r"## Desc 1\s*([\s\S]+?)\s*##"
+        disc_match = re.search(disc_pattern, issue_body)
+        
+        disc_text = disc_match.group(1).strip() if disc_match else None
+            
         match = re.search(pattern, issue_body)
 
         if match:
@@ -137,12 +180,14 @@ def find_mentors(url):
           ment_username.append(username.json()['login'])
         return {
             'mentors': mentors,
-            'mentor_usernames': ment_username
+            'mentor_usernames': ment_username,
+            'desc':disc_text
         }
     else:
       return {
             'mentors': [],
-            'mentor_usernames': []
+            'mentor_usernames': [],
+            'desc':None
         }
 
 def get_pr_details(url):
