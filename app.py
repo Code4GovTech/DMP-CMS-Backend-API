@@ -38,19 +38,6 @@ protected_routes = [
 @app.route('/greeting', methods=['GET'])
 @cross_origin() # added this to my endpoint
 def greeting():    
-    """
-    A simple greeting endpoint.
-    ---
-    responses:
-      200:
-        description: A greeting message
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: Hello, welcome to my API!
-    """
     response = {
         'message': 'Hello, welcome to my API!'
     }
@@ -158,13 +145,14 @@ def get_issues_by_owner(owner):
     """
     try:
         response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).order('comment_updated_at', desc=True).execute()
-
         if not response.data:
             return jsonify({'error': "No data found"}), 500
-        data = response.data
-        filtered_data = [{key: item[key] for key in ['owner','body_text']} for item in data]
-        data = [{**{"name": item.pop("owner"),"description": item.pop("body_text")}, **item} for item in filtered_data]
-        return jsonify(data)
+        data = response.data[0]
+        repo_details = get_repo_details(data['owner'],data['repo'])
+        org_name = repo_details.get('owner', {}).get('login', 'N/A')
+        org_desc = repo_details.get('description', 'N/A')
+        return jsonify({"name": org_name, "description": org_desc})
+      
     except Exception as e:
         return jsonify({'error': str(e)}), 500
       
@@ -213,7 +201,7 @@ def get_issues_by_owner_id(owner, issue):
     final_data = []
     for val in data:
       issue_url = "https://api.github.com/repos/{}/{}/issues/comments".format(val['owner'],val['repo'])
-      week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs = find_week_avg(issue_url)
+      week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
       mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
       
       mentors = mentors_data['mentors']
@@ -227,7 +215,7 @@ def get_issues_by_owner_id(owner, issue):
         "contributor_name":cont_name ,
         "contributor_id": cont_id,
         "org_name": val['owner'],
-        "org_link": val['repo'],
+        "org_link": org_link,
         "weekly_goals_html": w_goal,
         "weekly_learnings_html": w_learn,
         "overall_progress": week_avg,
@@ -236,14 +224,14 @@ def get_issues_by_owner_id(owner, issue):
       }
      
       transformed = {"pr_details": []}
-
+      
       for pr in res.get("pr_details", []):
         transformed["pr_details"].append({
             "id": pr.get("id", ""),
             "name": pr.get("title", ""),
-            "week": pr.get("week", ""),
+            "week": determine_week(pr['created_at']),
             "link": pr.get("html_url", ""),
-            "status": pr.get("state", "")
+            "status": pr.get("state", ""),
         })
                 
       res['pr_details'] = transformed

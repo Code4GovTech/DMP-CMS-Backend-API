@@ -1,5 +1,8 @@
 import requests,re,markdown2,os
 from collections import defaultdict
+from datetime import datetime, timedelta
+from dateutil import parser
+
 
 GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
 
@@ -146,7 +149,7 @@ def find_week_avg(url):
             w_learn_url = item['html_url']
         
     
-    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs
+    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs,issue_details[0]['user']['html_url']
       
 
 def find_mentors(url):
@@ -190,28 +193,58 @@ def find_mentors(url):
             'desc':None
         }
 
-def get_pr_details(url):
-  try:
-    issue_url = url
-    url_parts = issue_url.split("/")
-    owner = url_parts[4]
-    repo = url_parts[5]
-    issue_number = url_parts[7]
+def get_pr_details(url):    
+    try:
+        issue_url = url
+        url_parts = issue_url.split("/")
+        owner = url_parts[4]
+        repo = url_parts[5]
+        issue_number = url_parts[7]
 
-    # GitHub API endpoint to get pull requests for the repository
-    pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        # GitHub API endpoint to get pull requests for the repository
+        pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
 
-    # Send GET request to GitHub API with authentication
-    response = requests.get(pulls_url, headers=headers)
+        # Send GET request to GitHub API with authentication
+        response = requests.get(pulls_url, headers=headers)
+        if response.status_code == 200:
+            pulls = response.json()
+            return pulls      
+        else:
+            return []
+            
+            
+    except Exception as e:
+        raise Exception
+    
+        
+
+
+def get_repo_details(owner, repo):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    response = requests.get(url)
     if response.status_code == 200:
-        pulls = response.json()
-        return pulls      
+        return response.json()
     else:
-      return []
+        return None
+    
+
+
+def determine_week(input_date_str, start_date_str='2024-06-11'):
+    try:
+        # Convert the start date string to a datetime object
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        input_date = parser.parse(input_date_str).replace(tzinfo=None)
         
+        # Calculate the difference in days
+        difference_in_days = (input_date - start_date).days        
+        if difference_in_days < 0:
+            return "Week 0"
+        week_number = (difference_in_days // 7) + 1
         
-  except Exception as e:
-    raise Exception
-  
-  
-  
+        return f"Week {week_number}"
+    
+    except Exception as e:
+        return "Week -1"
+
+    
+    
