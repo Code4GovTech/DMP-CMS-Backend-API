@@ -8,7 +8,7 @@ from flask_cors import CORS,cross_origin
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, support_credentials=True)
+CORS(app, resources={r"/*": {"origins": "http://localhost:4200"}}, supports_credentials=True)
 
 
 Swagger(app)
