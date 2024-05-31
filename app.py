@@ -8,8 +8,7 @@ from flask_cors import CORS,cross_origin
 
 
 app = Flask(__name__)
-# CORS(app, resources={r"/*": {"origins": "*"}})
-CORS(app, support_credentials=True)
+CORS(app, resources={r"/*": {"origins": "*"}}, support_credentials=True)
 
 
 Swagger(app)
@@ -36,7 +35,7 @@ protected_routes = [
 ]
 
 @app.route('/greeting', methods=['GET'])
-@cross_origin() # added this to my endpoint
+@cross_origin(supports_credentials=True) # added this to my endpoint 
 def greeting():    
     response = {
         'message': 'Hello, welcome to my API!'
@@ -44,7 +43,7 @@ def greeting():
     return jsonify(response)
 
 @app.route('/get-data', methods=['GET'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_data():
     """
     Fetch data from Supabase.
@@ -73,7 +72,7 @@ def get_data():
 
 
 @app.route('/issues', methods=['GET'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_issues():
     """
     Fetch all issues and group by owner.
@@ -117,7 +116,7 @@ def get_issues():
         return jsonify({'error': str(e)}), 500
       
 @app.route('/issues/<owner>', methods=['GET'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_issues_by_owner(owner):
     """
     Fetch issues by owner.
@@ -159,7 +158,7 @@ def get_issues_by_owner(owner):
 
   
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
-@cross_origin()
+@cross_origin(supports_credentials=True)
 def get_issues_by_owner_id(owner, issue):
   """
     Fetch issues by owner and issue number.
