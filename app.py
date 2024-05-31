@@ -5,6 +5,7 @@ from flasgger import Swagger
 import re,os
 from utils import *
 from flask_cors import CORS,cross_origin
+from functools import wraps
 
 
 app = Flask(__name__)
@@ -41,6 +42,18 @@ def greeting():
         'message': 'Hello, welcome to my API!'
     }
     return jsonify(response)
+  
+  
+
+# Custom decorator to validate secret key
+def require_secret_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        secret_key = request.headers.get('X-Secret-Key')
+        if secret_key != SECRET_KEY:
+            return jsonify({'message': 'Unauthorized access'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/get-data', methods=['GET'])
 @cross_origin(supports_credentials=True)
@@ -73,6 +86,7 @@ def get_data():
 
 @app.route('/issues', methods=['GET'])
 @cross_origin(supports_credentials=True)
+@require_secret_key
 def get_issues():
     """
     Fetch all issues and group by owner.
@@ -248,7 +262,7 @@ def get_issues_by_owner_id(owner, issue):
 
 
 # Before request handler to check for the presence of the secret key
-@app.before_request
+# @app.before_request
 def check_secret_key():
   for route_pattern in protected_routes:
     if route_pattern.match(request.path):
