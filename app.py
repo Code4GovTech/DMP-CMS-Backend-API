@@ -2,7 +2,7 @@ from flask import Flask, jsonify,request,url_for
 from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
-import re,os
+import re,os,traceback
 from utils import *
 from flask_cors import CORS,cross_origin
 from functools import wraps
@@ -127,10 +127,12 @@ def get_issues():
         return jsonify(grouped_data)
       
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_traceback = traceback.format_exc()
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
       
 @app.route('/issues/<owner>', methods=['GET'])
 @cross_origin(supports_credentials=True)
+@require_secret_key
 def get_issues_by_owner(owner):
     """
     Fetch issues by owner.
@@ -162,17 +164,19 @@ def get_issues_by_owner(owner):
             return jsonify({'error': "No data found"}), 500
         data = response.data[0]
         repo_details = get_repo_details(data['owner'],data['repo'])
-        org_name = repo_details.get('owner', {}).get('login', 'N/A')
-        org_desc = repo_details.get('description', 'N/A')
+        org_name = repo_details['ower']['login'] if repo_details['owner']['login'] else None
+        org_desc = repo_details['description']  if repo_details['description']  else None
         return jsonify({"name": org_name, "description": org_desc})
       
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_traceback = traceback.format_exc()
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
       
 
   
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
 @cross_origin(supports_credentials=True)
+@require_secret_key
 def get_issues_by_owner_id(owner, issue):
   """
     Fetch issues by owner and issue number.
@@ -257,7 +261,8 @@ def get_issues_by_owner_id(owner, issue):
     
       return jsonify(res),200
   except Exception as e:
-    return jsonify({'error': str(e)}), 500
+      error_traceback = traceback.format_exc()
+      return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
 
 
