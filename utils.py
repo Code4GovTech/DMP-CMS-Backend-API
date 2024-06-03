@@ -51,9 +51,9 @@ def get_issue_details(issue_url):
     response = requests.get(issue_api_url, headers=headers)
     if response.status_code == 200:
         issue_data = response.json()
-        return [{'id': issue['id'], 'name': issue['title'],'html_url':issue['html_url']} for issue in issue_data if "pull_request" not in issue]
+        return [{'id': issue['id'], 'name': issue['title'],'html_url':issue['html_url'],'issue_number':issue['number']} for issue in issue_data if "pull_request" not in issue]
     else:
-        return {'id': None, 'name': None}
+        return {'id': None, 'name': None ,'html_url':None,'issue_number':None}
       
       
 
@@ -68,16 +68,18 @@ def group_by_owner(data):
       res.append(dict_)
       
     
-    org_dict = defaultdict(lambda: {'issues': [], 'org_id': None, 'org_name': None})
-    for entry in res:
-        org_id = entry['org_id']
-        org_name = entry['org_name']
+    # org_dict = defaultdict(lambda: {'issues': [], 'org_id': None, 'org_name': None})
+    # for entry in res:
+    #     org_id = entry['org_id']
+    #     org_name = entry['org_name']
         
-        org_dict[org_id]['issues'].extend(entry['issues'])
-        org_dict[org_id]['org_id'] = org_id
-        org_dict[org_id]['org_name'] = org_name
+    #     org_dict[org_id]['issues'].extend(entry['issues'])
+    #     org_dict[org_id]['org_id'] = org_id
+    #     org_dict[org_id]['org_name'] = org_name
+    
         
-    return  list(org_dict.values())
+    # return  list(org_dict.values())
+    return res
 
 
 def find_week_data(issue_details):
@@ -136,7 +138,7 @@ def find_week_avg(url):
     for item in issue_details:
         
         if "Weekly Goals" in item['body']:
-            w_goal_url = item['html_url']
+            w_goal_url = item['body']
             plain_text_body = markdown2.markdown(issue_details[0]['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
@@ -146,7 +148,7 @@ def find_week_avg(url):
             avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
                 
         if "Weekly Learnings" in item['body']:
-            w_learn_url = item['html_url']
+            w_learn_url = item['body']
         
     
     return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs,issue_details[0]['user']['html_url']

@@ -122,7 +122,7 @@ def get_issues():
             })
 
         result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
-              
+        
         grouped_data = group_by_owner(result)
         return jsonify(grouped_data)
       
@@ -232,7 +232,7 @@ def get_issues_by_owner_id(owner, issue):
         "weekly_goals_html": w_goal,
         "weekly_learnings_html": w_learn,
         "overall_progress": week_avg,
-        "issue_url":val['issue_url'],
+        "issue_url":val['html_url'],
         "pr_details":get_pr_details(val['issue_url'])
       }
      
@@ -247,7 +247,7 @@ def get_issues_by_owner_id(owner, issue):
             "status": pr.get("state", ""),
         })
                 
-      res['pr_details'] = transformed
+      res['pr_details'] = transformed['pr_details']
       
       # Adding each week as a separate key
       # for week in weekby_avgs:
