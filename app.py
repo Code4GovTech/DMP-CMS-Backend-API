@@ -164,7 +164,7 @@ def get_issues_by_owner(owner):
             return jsonify({'error': "No data found"}), 500
         data = response.data[0]
         repo_details = get_repo_details(data['owner'],data['repo'])
-        org_name = repo_details['ower']['login'] if repo_details['owner']['login'] else None
+        org_name = repo_details['owner']['login'] if repo_details['owner']['login'] else None
         org_desc = repo_details['description']  if repo_details['description']  else None
         return jsonify({"name": org_name, "description": org_desc})
       
