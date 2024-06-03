@@ -180,7 +180,7 @@ def find_mentors(url):
         ment_username = []
         for val in mentors:            
           url = f"{api_base_url}{val[1:]}"
-          username = requests.get(url)
+          username = requests.get(url,headers=headers)
           
           ment_username.append(username.json()['login'])
         return {
@@ -223,7 +223,7 @@ def get_pr_details(url):
 
 def get_repo_details(owner, repo):
     url = f"https://api.github.com/repos/{owner}/{repo}"
-    response = requests.get(url)
+    response = requests.get(url,headers=headers)
     if response.status_code == 200:
         return response.json()
     else:
