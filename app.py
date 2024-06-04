@@ -84,6 +84,31 @@ def get_data():
         return jsonify({'error': str(e)}), 500
 
 
+
+@app.route('/v1/issues', methods=['GET'])
+def v1get_issues():
+    try:        
+        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
+        data = response.data
+                
+        #group data based on issues
+        grouped_data = defaultdict(list)
+        for record in data:
+            issue_url = record['issue_url']
+            grouped_data[issue_url].append({
+                'id': record['id'],
+                'name': record['body_text']
+            })
+
+        result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
+        grouped_data = group_by_owner(result)
+        return jsonify(grouped_data)
+      
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+      
+
 @app.route('/issues', methods=['GET'])
 @cross_origin(supports_credentials=True)
 @require_secret_key
@@ -109,22 +134,39 @@ def get_issues():
               type: string
     """
     try:
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
-        data = response.data
-                
-        #group data based on issues
-        grouped_data = defaultdict(list)
-        for record in data:
-            issue_url = record['issue_url']
-            grouped_data[issue_url].append({
-                'id': record['id'],
-                'name': record['body_text']
-            })
-
-        result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
+        dmp_issue =SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
         
-        grouped_data = group_by_owner(result)
-        return jsonify(grouped_data)
+        for i in dmp_issue:
+          val = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('dmp_issue_url',i['repo_url']).execute().data 
+          i['issues'] = val[0] #append first obj ie all are reder same issue
+          i['org_id'] = val[0]['org_id']
+          i['org_name'] = val[0]['org_name'] 
+          
+        # Create a defaultdict of lists
+        grouped_data = defaultdict(list)
+        # Group data by 'org_name'
+        for item in dmp_issue:
+            grouped_data[item['org_name']].append(item)
+
+        response = []
+        for org_name, items in grouped_data.items():
+            issues = [
+                {
+                    "html_url": item['issues']['html_issue_url'],
+                    "id": item['issues']['comment_id'],
+                    "issue_number": item['issues']['issue_number'],
+                    "name": item['issues']['title']
+                }
+                for item in items
+            ]
+            
+            response.append({
+                "issues": issues,
+                "org_id": items[0]['org_id'],
+                "org_name": org_name
+            })
+        
+        return jsonify(response)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -163,10 +205,7 @@ def get_issues_by_owner(owner):
         if not response.data:
             return jsonify({'error': "No data found"}), 500
         data = response.data[0]
-        repo_details = get_repo_details(data['owner'],data['repo'])
-        org_name = repo_details['owner']['login'] if repo_details['owner']['login'] else None
-        org_desc = repo_details['description']  if repo_details['description']  else None
-        return jsonify({"name": org_name, "description": org_desc})
+        return jsonify({"name": data['org_name'], "description": data['org_description']})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -210,48 +249,68 @@ def get_issues_by_owner_id(owner, issue):
                 
   """
   try:         
-    response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
+    SUPABASE_DB = SupabaseInterface().get_instance()
+    response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
         return jsonify({'error': "No data found"}), 500
     data = response.data
     
     final_data = []
+    w_learn_url,w_goal_url,avg,cont_details = None,None,None,None
+    
     for val in data:
       issue_url = "https://api.github.com/repos/{}/{}/issues/comments".format(val['owner'],val['repo'])
-      week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
-      mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
+      # week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
+      # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
       
-      mentors = mentors_data['mentors']
-      ment_usernames = mentors_data['mentor_usernames']
+      
+      if "Weekly Goals" in val['body_text'] and not w_goal_url:
+          w_goal_url = val['body_text']
+          plain_text_body = markdown2.markdown(val['body_text'])
+              
+          tasks = re.findall(r'\[(x| )\]', plain_text_body)
+          total_tasks = len(tasks)
+          completed_tasks = tasks.count('x')
+          
+          avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
+                
+      if "Weekly Learnings" in val['body_text'] and not w_learn_url:
+          w_learn_url = val['body_text']
+      
+      # mentors = mentors_data['mentors']
+      # ment_usernames = mentors_data['mentor_usernames']
+      if not cont_details:
+        cont_details = SUPABASE_DB.client.table('dmp_issues').select('*').eq('repo_url',val['dmp_issue_url']).execute().data 
       
       res = {
         "name": owner,
-        "description": mentors_data['desc'],
-        "mentor_name": ment_usernames,
-        "mentor_id": mentors,
-        "contributor_name":cont_name ,
-        "contributor_id": cont_id,
+        "description": val['description'],
+        "mentor_name": val['mentor_name'],
+        "mentor_id": val['mentor_id'] ,
+        "contributor_name":cont_details[0]['contributor_name'] ,
+        "contributor_id": cont_details[0]['contributor_id'],
         "org_name": val['owner'],
-        "org_link": org_link,
-        "weekly_goals_html": w_goal,
-        "weekly_learnings_html": w_learn,
-        "overall_progress": week_avg,
+        "org_link": val['org_link'],
+        "weekly_goals_html": w_goal_url,
+        "weekly_learnings_html": w_learn_url,
+        "overall_progress": avg,
         "issue_url":val['html_url'],
-        "pr_details":get_pr_details(val['issue_url'])
+        "pr_details":None
       }
-     
-      transformed = {"pr_details": []}
       
-      for pr in res.get("pr_details", []):
+    pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('repo', val['repo']).execute()
+    transformed = {"pr_details": []}
+    if pr_Data.data:
+      for pr in pr_Data.data:
         transformed["pr_details"].append({
-            "id": pr.get("id", ""),
-            "name": pr.get("title", ""),
+            "id": pr.get("pr_id", ""),
+            "name": pr.get("meta_data", ""),
             "week": determine_week(pr['created_at']),
             "link": pr.get("html_url", ""),
-            "status": pr.get("state", ""),
+            "status": pr.get("status", ""),
         })
-                
-      res['pr_details'] = transformed['pr_details']
+              
+    res['pr_details'] = transformed['pr_details']
       
       # Adding each week as a separate key
       # for week in weekby_avgs:
@@ -259,7 +318,8 @@ def get_issues_by_owner_id(owner, issue):
         
       # final_data.append(res)
     
-      return jsonify(res),200
+    return jsonify(res),200
+  
   except Exception as e:
       error_traceback = traceback.format_exc()
       return jsonify({'error': str(e), 'traceback': error_traceback}), 500

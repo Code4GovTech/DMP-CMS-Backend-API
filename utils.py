@@ -57,7 +57,7 @@ def get_issue_details(issue_url):
       
       
 
-def group_by_owner(data):    
+def group_by_owner(data):  
     res = []
     for record in data:
       org_data = find_org_data(record['issue_url'])
