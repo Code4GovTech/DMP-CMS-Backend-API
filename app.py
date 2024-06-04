@@ -136,16 +136,21 @@ def get_issues():
     try:
         dmp_issue =SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
         
+        updated_issues = []
+
         for i in dmp_issue:
           val = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('dmp_issue_url',i['repo_url']).execute().data 
-          i['issues'] = val[0] #append first obj ie all are reder same issue
-          i['org_id'] = val[0]['org_id']
-          i['org_name'] = val[0]['org_name'] 
+          if val!=[]:
+            i['issues'] = val[0] #append first obj ie all are reder same issue
+            i['org_id'] = val[0]['org_id']
+            i['org_name'] = val[0]['org_name'] 
+            
+            updated_issues.append(i)
           
         # Create a defaultdict of lists
         grouped_data = defaultdict(list)
         # Group data by 'org_name'
-        for item in dmp_issue:
+        for item in updated_issues:
             grouped_data[item['org_name']].append(item)
 
         response = []
