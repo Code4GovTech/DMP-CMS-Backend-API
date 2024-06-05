@@ -1,5 +1,8 @@
 import requests,re,markdown2,os
 from collections import defaultdict
+from datetime import datetime, timedelta
+from dateutil import parser
+
 
 GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
 
@@ -48,13 +51,13 @@ def get_issue_details(issue_url):
     response = requests.get(issue_api_url, headers=headers)
     if response.status_code == 200:
         issue_data = response.json()
-        return [{'id': issue['id'], 'name': issue['title'],'html_url':issue['html_url']} for issue in issue_data if "pull_request" not in issue]
+        return [{'id': issue['id'], 'name': issue['title'],'html_url':issue['html_url'],'issue_number':issue['number']} for issue in issue_data if "pull_request" not in issue]
     else:
-        return {'id': None, 'name': None}
+        return {'id': None, 'name': None ,'html_url':None,'issue_number':None}
       
       
 
-def group_by_owner(data):    
+def group_by_owner(data):  
     res = []
     for record in data:
       org_data = find_org_data(record['issue_url'])
@@ -65,16 +68,18 @@ def group_by_owner(data):
       res.append(dict_)
       
     
-    org_dict = defaultdict(lambda: {'issues': [], 'org_id': None, 'org_name': None})
-    for entry in res:
-        org_id = entry['org_id']
-        org_name = entry['org_name']
+    # org_dict = defaultdict(lambda: {'issues': [], 'org_id': None, 'org_name': None})
+    # for entry in res:
+    #     org_id = entry['org_id']
+    #     org_name = entry['org_name']
         
-        org_dict[org_id]['issues'].extend(entry['issues'])
-        org_dict[org_id]['org_id'] = org_id
-        org_dict[org_id]['org_name'] = org_name
+    #     org_dict[org_id]['issues'].extend(entry['issues'])
+    #     org_dict[org_id]['org_id'] = org_id
+    #     org_dict[org_id]['org_name'] = org_name
+    
         
-    return  list(org_dict.values())
+    # return  list(org_dict.values())
+    return res
 
 
 def find_week_data(issue_details):
@@ -133,7 +138,7 @@ def find_week_avg(url):
     for item in issue_details:
         
         if "Weekly Goals" in item['body']:
-            w_goal_url = item['html_url']
+            w_goal_url = item['body']
             plain_text_body = markdown2.markdown(issue_details[0]['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
@@ -143,10 +148,10 @@ def find_week_avg(url):
             avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
                 
         if "Weekly Learnings" in item['body']:
-            w_learn_url = item['html_url']
+            w_learn_url = item['body']
         
     
-    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs
+    return avg,issue_details[0]['user']['login'],issue_details[0]['user']['id'],w_goal_url,w_learn_url,week_avgs,issue_details[0]['user']['html_url']
       
 
 def find_mentors(url):
@@ -175,7 +180,7 @@ def find_mentors(url):
         ment_username = []
         for val in mentors:            
           url = f"{api_base_url}{val[1:]}"
-          username = requests.get(url)
+          username = requests.get(url,headers=headers)
           
           ment_username.append(username.json()['login'])
         return {
@@ -190,28 +195,58 @@ def find_mentors(url):
             'desc':None
         }
 
-def get_pr_details(url):
-  try:
-    issue_url = url
-    url_parts = issue_url.split("/")
-    owner = url_parts[4]
-    repo = url_parts[5]
-    issue_number = url_parts[7]
+def get_pr_details(url):    
+    try:
+        issue_url = url
+        url_parts = issue_url.split("/")
+        owner = url_parts[4]
+        repo = url_parts[5]
+        issue_number = url_parts[7]
 
-    # GitHub API endpoint to get pull requests for the repository
-    pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        # GitHub API endpoint to get pull requests for the repository
+        pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
 
-    # Send GET request to GitHub API with authentication
-    response = requests.get(pulls_url, headers=headers)
+        # Send GET request to GitHub API with authentication
+        response = requests.get(pulls_url, headers=headers)
+        if response.status_code == 200:
+            pulls = response.json()
+            return pulls      
+        else:
+            return []
+            
+            
+    except Exception as e:
+        raise Exception
+    
+        
+
+
+def get_repo_details(owner, repo):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    response = requests.get(url,headers=headers)
     if response.status_code == 200:
-        pulls = response.json()
-        return pulls      
+        return response.json()
     else:
-      return []
+        return None
+    
+
+
+def determine_week(input_date_str, start_date_str='2024-06-11'):
+    try:
+        # Convert the start date string to a datetime object
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        input_date = parser.parse(input_date_str).replace(tzinfo=None)
         
+        # Calculate the difference in days
+        difference_in_days = (input_date - start_date).days        
+        if difference_in_days < 0:
+            return "Week 0"
+        week_number = (difference_in_days // 7) + 1
         
-  except Exception as e:
-    raise Exception
-  
-  
-  
+        return f"Week {week_number}"
+    
+    except Exception as e:
+        return "Week -1"
+
+    
+    
