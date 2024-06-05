@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from dateutil import parser
 
 
-GITHUB_TOKEN =os.getenv('APP_DEV_GITHUB_TOKEN')
+GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
 
 headers = {
         "Accept": "application/vnd.github+json",
@@ -57,7 +57,7 @@ def get_issue_details(issue_url):
       
       
 
-def group_by_owner(data):  
+def group_by_owner(data):    
     res = []
     for record in data:
       org_data = find_org_data(record['issue_url'])
