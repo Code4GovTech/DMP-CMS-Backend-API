@@ -14,7 +14,7 @@ CORS(app,supports_credentials=True)
 
 Swagger(app)
 
-GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
+GITHUB_TOKEN =os.getenv('APP_DEV_GITHUB_TOKEN')
 
 headers = {
         "Accept": "application/vnd.github+json",
@@ -25,7 +25,7 @@ headers = {
 
 # Define a list of routes that should be protected
 protected_routes = ['/greeting', '/get-data', '/issues', '/issues/<owner>', '/issues/<owner>/<issue>']
-SECRET_KEY =os.getenv('SECRET_KEY')
+SECRET_KEY =os.getenv('APP_DEV_SECRET_KEY')
 
 protected_routes = [
     re.compile(r'^/greeting$'),

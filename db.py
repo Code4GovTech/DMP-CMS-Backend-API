@@ -19,8 +19,8 @@ class SupabaseInterface():
             from dotenv import load_dotenv
             load_dotenv()
 
-            SUPABASE_URL = os.getenv('SUPABASE_URL')
-            SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+            SUPABASE_URL = os.getenv('APP_DEV_SUPABASE_URL')
+            SUPABASE_KEY = os.getenv('APP_DEV_SUPABASE_KEY')
             self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
             SupabaseInterface._instance = self
         else:          

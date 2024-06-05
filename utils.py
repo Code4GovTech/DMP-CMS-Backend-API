@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from dateutil import parser
 
 
-GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
+GITHUB_TOKEN =os.getenv('APP_DEV_GITHUB_TOKEN')
 
 headers = {
         "Accept": "application/vnd.github+json",
