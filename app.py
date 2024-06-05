@@ -9,7 +9,7 @@ from functools import wraps
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:4200"}}, supports_credentials=True)
+CORS(app,supports_credentials=True)
 
 
 Swagger(app)
