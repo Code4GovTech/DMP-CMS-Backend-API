@@ -268,19 +268,19 @@ def get_issues_by_owner_id(owner, issue):
       # week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
       # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
       
-      
-      if "Weekly Goals" in val['body_text'] and not w_goal_url:
-          w_goal_url = val['body_text']
-          plain_text_body = markdown2.markdown(val['body_text'])
-              
-          tasks = re.findall(r'\[(x| )\]', plain_text_body)
-          total_tasks = len(tasks)
-          completed_tasks = tasks.count('x')
-          
-          avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
+      if val['body_text']:
+        if "Weekly Goals" in val['body_text'] and not w_goal_url:
+            w_goal_url = val['body_text']
+            plain_text_body = markdown2.markdown(val['body_text'])
                 
-      if "Weekly Learnings" in val['body_text'] and not w_learn_url:
-          w_learn_url = val['body_text']
+            tasks = re.findall(r'\[(x| )\]', plain_text_body)
+            total_tasks = len(tasks)
+            completed_tasks = tasks.count('x')
+            
+            avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
+                  
+        if "Weekly Learnings" in val['body_text'] and not w_learn_url:
+            w_learn_url = val['body_text']
       
       # mentors = mentors_data['mentors']
       # ment_usernames = mentors_data['mentor_usernames']
@@ -299,7 +299,7 @@ def get_issues_by_owner_id(owner, issue):
         "weekly_goals_html": w_goal_url,
         "weekly_learnings_html": w_learn_url,
         "overall_progress": avg,
-        "issue_url":val['html_url'],
+        "issue_url":val['html_issue_url'],
         "pr_details":None
       }
       
