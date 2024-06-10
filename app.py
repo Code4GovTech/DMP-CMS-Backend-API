@@ -57,6 +57,7 @@ def require_secret_key(f):
 
 @app.route('/get-data', methods=['GET'])
 @cross_origin(supports_credentials=True)
+@require_secret_key
 def get_data():
     """
     Fetch data from Supabase.
@@ -86,6 +87,7 @@ def get_data():
 
 
 @app.route('/v1/issues', methods=['GET'])
+@require_secret_key
 def v1get_issues():
     try:        
         response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
