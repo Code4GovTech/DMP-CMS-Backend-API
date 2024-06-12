@@ -2,9 +2,13 @@ import requests,re,markdown2,os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser
+from flask import  jsonify,request
+from functools import wraps
 
 
 GITHUB_TOKEN =os.getenv('GITHUB_TOKEN')
+SECRET_KEY =os.getenv('SECRET_KEY')
+
 
 headers = {
         "Accept": "application/vnd.github+json",
@@ -12,6 +16,17 @@ headers = {
         "X-GitHub-Api-Version": "2022-11-28"
     }
 
+
+
+# Custom decorator to validate secret key
+def require_secret_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        secret_key = request.headers.get('X-Secret-Key')
+        if secret_key != SECRET_KEY:
+            return jsonify({'message': 'Unauthorized access'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def find_org_data(url):

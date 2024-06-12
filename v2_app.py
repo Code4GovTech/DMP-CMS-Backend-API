@@ -1,7 +1,7 @@
 import traceback,re
 from flask import Blueprint, jsonify, request
 import markdown2
-from app import require_secret_key
+from utils import require_secret_key
 from db import SupabaseInterface
 from utils import determine_week
 from v2_utils import define_mentors_data, week_data_formatter

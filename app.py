@@ -5,7 +5,6 @@ from flasgger import Swagger
 import re,os,traceback
 from utils import *
 from flask_cors import CORS,cross_origin
-from functools import wraps
 from v2_app import v2
 
 
@@ -46,15 +45,6 @@ def greeting():
   
   
 
-# Custom decorator to validate secret key
-def require_secret_key(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        secret_key = request.headers.get('X-Secret-Key')
-        if secret_key != SECRET_KEY:
-            return jsonify({'message': 'Unauthorized access'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 @app.route('/get-data', methods=['GET'])
 @cross_origin(supports_credentials=True)
