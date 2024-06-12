@@ -6,6 +6,7 @@ import re,os,traceback
 from utils import *
 from flask_cors import CORS,cross_origin
 from functools import wraps
+from v2_app import v2
 
 
 app = Flask(__name__)
@@ -344,5 +345,9 @@ def check_secret_key():
       break  # Stop checking if the current route matches
 
           
+
+# Register the v2 Blueprint
+app.register_blueprint(v2, url_prefix='/v2')
+
 if __name__ == '__main__':
     app.run(debug=True)
