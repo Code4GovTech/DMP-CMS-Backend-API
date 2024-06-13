@@ -20,7 +20,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         data = response.data
         
         final_data = []
-        w_learn_url,w_goal_url,avg,cont_details = None,None,None,None
+        w_learn_url,w_goal_url,avg,cont_details,plain_text_body,plain_text_wurl = None,None,None,None,None,None
         
         for val in data:
             issue_url = "https://api.github.com/repos/{}/{}/issues/comments".format(val['owner'],val['repo'])
