@@ -91,20 +91,24 @@ def week_data_formatter(html_content,type):
         return []
         
         
-def calculate_overall_progress(weekly_updates, total_weeks):
+def calculate_overall_progress(weekly_updates, default_weeks=12):
     try:
-        # Calculate total progress for the provided weeks
+        total_progress = 0
         provided_weeks = len(weekly_updates)
-        total_progress = sum(week['progress'] for week in weekly_updates)
         
-        # Calculate average progress based on provided weeks
-        average_progress = total_progress / provided_weeks if provided_weeks else 0
+        # Sum the progress of each provided week
+        for week in weekly_updates:
+            total_progress += week['progress']
         
-        # Calculate overall progress for the total number of weeks
-        overall_progress = average_progress * (total_weeks / provided_weeks) if provided_weeks else 0
+        # Add zero progress for the remaining weeks to reach the default weeks
+        total_weeks = default_weeks
+        remaining_weeks = default_weeks - provided_weeks
+        total_progress += remaining_weeks * 0  # Adding zero progress for the remaining weeks
         
-        return round(overall_progress, 2)    
+        # Calculate the average progress over the total number of weeks
+        overall_progress = total_progress / total_weeks if total_weeks > 0 else 0
+        
+        return round(overall_progress, 2)
     except Exception as e:
         return 0
-    
     
