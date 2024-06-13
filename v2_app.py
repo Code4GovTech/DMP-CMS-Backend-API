@@ -4,7 +4,7 @@ import markdown2
 from utils import require_secret_key
 from db import SupabaseInterface
 from utils import determine_week
-from v2_utils import define_mentors_data, week_data_formatter
+from v2_utils import calculate_overall_progress, define_mentors_data, week_data_formatter
 
 v2 = Blueprint('v2', __name__)
 
@@ -49,7 +49,7 @@ def get_issues_by_owner_id_v2(owner, issue):
                 cont_details = SUPABASE_DB.client.table('dmp_issues').select('*').eq('repo_url',val['dmp_issue_url']).execute().data 
         
         
-        week_data = week_data_formatter(plain_text_body)
+        week_data = week_data_formatter(plain_text_body,"Goals")
         res = {
             "name": owner,
             "description": val['description'],
@@ -60,14 +60,14 @@ def get_issues_by_owner_id_v2(owner, issue):
             "org": define_mentors_data(val['owner'])[0] if val['owner'] else [],
             "weekly_goals_html": w_goal_url,
             "weekly_learnings_html": w_learn_url,
-            "overall_progress": week_data[1],
+            "overall_progress":calculate_overall_progress(week_data,12),
             "issue_url":val['html_issue_url'],
             "pr_details":None,
-            "weekly_goals":week_data[0],
-            "weekly_learns":week_data_formatter(plain_text_wurl)[0]
+            "weekly_goals":week_data,
+            "weekly_learns":week_data_formatter(plain_text_wurl,"Learnings")
         }
         
-        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('repo', val['repo']).execute()
+        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('repo', val['repo']).eq('pr_number',issue).execute()
         transformed = {"pr_details": []}
         if pr_Data.data:
             for pr in pr_Data.data:
