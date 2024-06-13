@@ -56,7 +56,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             "mentor": define_mentors_data(val['mentor_name']),
             "mentor_id": val['mentor_id'] ,
             "contributor":define_mentors_data(cont_details[0]['contributor_name']),
-            "contributor_id": cont_details[0]['contributor_id'],
+            # "contributor_id": cont_details[0]['contributor_id'],
             "org": define_mentors_data(val['owner'])[0] if val['owner'] else [],
             "weekly_goals_html": w_goal_url,
             "weekly_learnings_html": w_learn_url,
