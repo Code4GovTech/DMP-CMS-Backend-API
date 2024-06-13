@@ -25,60 +25,86 @@ def define_mentors_data(mentors):
         
         
         
-def week_data_formatter(html_content):
+def week_data_formatter(html_content,type):
     try:
         # Find all weeks
         week_matches = re.findall(r'<h2>(Week \d+)</h2>', html_content)
         tasks_per_week = re.findall(r'<h2>Week \d+</h2>\s*<ul>(.*?)</ul>', html_content, re.DOTALL)
         
         weekly_updates = []
-        total_weighted_progress = 0
         total_tasks = 0
         
-        for i, week in enumerate(week_matches):
-            try:
-                task_list_html = tasks_per_week[i]
-            except Exception as e:
-                task_list_html = ""
-            
-            tasks = re.findall(r'\[(x| )\] (.*?)</li>', task_list_html, re.DOTALL)
-            
-            total_tasks = len(tasks)
-            completed_tasks = sum(1 for task in tasks if task[0] == 'x')
-            task_list = [{"content":i[1],"checked":True if i[0]=='x' else False} for i in tasks]
+        if type == "Learnings":
+            for i, week in enumerate(week_matches):
+                
+                try:
+                    task_list_html = tasks_per_week[i]
+                except Exception as e:
+                    task_list_html = ""
+                    
+                weekly_updates.append({
+                    'week': i+1,
+                    'content':task_list_html
+                })
 
-            
-            avg = round((completed_tasks / total_tasks) * 100) if total_tasks != 0 else 0
-            
-            weekly_updates.append({
-                'week': i+1,
-                # 'total_tasks': total_tasks,
-                # 'completed_tasks': completed_tasks,
-                'progress': avg,
-                'tasks':task_list
-            })
-            
-            num_tasks = len(task_list)
-            progress = avg
-            
-            total_weighted_progress += progress * num_tasks
-            total_tasks += num_tasks
-
-        response = {
-            'number_of_weeks': len(week_matches),
-            'weekly_updates': weekly_updates
-        }
+            return weekly_updates
         
-        #FIND OVERALL PROGRESS
-        
-        overall_progress = (total_weighted_progress / total_tasks) if total_tasks > 0 else 0
-        # return round(overall_progress, 2)
+        else:            
+            for i, week in enumerate(week_matches):
+                try:
+                    task_list_html = tasks_per_week[i]
+                except Exception as e:
+                    task_list_html = ""
+                
+                tasks = re.findall(r'\[(x| )\] (.*?)</li>', task_list_html, re.DOTALL)
+                
+                total_tasks = len(tasks)
+                completed_tasks = sum(1 for task in tasks if task[0] == 'x')
+                task_list = [{"content":i[1],"checked":True if i[0]=='x' else False} for i in tasks]
 
-        return weekly_updates,overall_progress
+                
+                avg = round((completed_tasks / total_tasks) * 100) if total_tasks != 0 else 0
+                
+                weekly_updates.append({
+                    'week': i+1,
+                    # 'total_tasks': total_tasks,
+                    # 'completed_tasks': completed_tasks,
+                    'progress': avg,
+                    'tasks':task_list
+                })
+                
+            
+
+            response = {
+                'number_of_weeks': len(week_matches),
+                'weekly_updates': weekly_updates
+            }
+            
+            #FIND OVERALL PROGRESS
+            
+          
+
+            return weekly_updates
            
         
     except Exception as e:
-        return [],0
+        return []
         
+        
+def calculate_overall_progress(weekly_updates, total_weeks):
+    try:
+        # Calculate total progress for the provided weeks
+        provided_weeks = len(weekly_updates)
+        total_progress = sum(week['progress'] for week in weekly_updates)
+        
+        # Calculate average progress based on provided weeks
+        average_progress = total_progress / provided_weeks if provided_weeks else 0
+        
+        # Calculate overall progress for the total number of weeks
+        overall_progress = average_progress * (total_weeks / provided_weeks) if provided_weeks else 0
+        
+        return round(overall_progress, 2)    
+    except Exception as e:
+        return 0
     
     
