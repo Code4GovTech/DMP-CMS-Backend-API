@@ -199,7 +199,7 @@ def get_issues_by_owner(owner):
               type: string
     """
     try:
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).order('comment_updated_at', desc=True).execute()
+        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('org_name', owner).order('comment_updated_at', desc=True).execute()
         if not response.data:
             return jsonify({'error': "No data found"}), 200
         data = response.data[0]
