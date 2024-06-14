@@ -73,7 +73,7 @@ def get_data():
         data = response.data
         return jsonify(data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 200
 
 
 
@@ -99,7 +99,7 @@ def v1get_issues():
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 
 @app.route('/issues', methods=['GET'])
@@ -168,7 +168,7 @@ def get_issues():
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 @app.route('/issues/<owner>', methods=['GET'])
 @cross_origin(supports_credentials=True)
@@ -201,13 +201,13 @@ def get_issues_by_owner(owner):
     try:
         response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).order('comment_updated_at', desc=True).execute()
         if not response.data:
-            return jsonify({'error': "No data found"}), 500
+            return jsonify({'error': "No data found"}), 200
         data = response.data[0]
         return jsonify({"name": data['org_name'], "description": data['org_description']})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 
   
@@ -250,7 +250,7 @@ def get_issues_by_owner_id(owner, issue):
     SUPABASE_DB = SupabaseInterface().get_instance()
     response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
-        return jsonify({'error': "No data found"}), 500
+        return jsonify({'error': "No data found"}), 200
     data = response.data
     
     final_data = []
@@ -320,7 +320,7 @@ def get_issues_by_owner_id(owner, issue):
   
   except Exception as e:
       error_traceback = traceback.format_exc()
-      return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+      return jsonify({'error': str(e), 'traceback': error_traceback}), 200
 
 
 

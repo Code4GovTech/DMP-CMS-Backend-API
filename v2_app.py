@@ -16,7 +16,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         SUPABASE_DB = SupabaseInterface().get_instance()
         response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
         if not response.data:
-            return jsonify({'error': "No data found"}), 500
+            return jsonify({'error': "No data found"}), 200
         data = response.data
         
         final_data = []
@@ -91,4 +91,4 @@ def get_issues_by_owner_id_v2(owner, issue):
   
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
