@@ -127,88 +127,99 @@ def get_issues():
               type: string
     """
     try:
-        dmp_issue =SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
+        # Fetch all issues with their details
+        dmp_issues = SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
         
-        updated_issues = []
-
-        for i in dmp_issue:
-          val = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('dmp_issue_url',i['repo_url']).execute().data 
-          if val!=[]:
-            i['issues'] = val[0] #append first obj ie all are reder same issue
-            i['org_id'] = val[0]['org_id']
-            i['org_name'] = val[0]['org_name'] 
-            
-            updated_issues.append(i)
-          
-        # Create a defaultdict of lists
+        # Create a defaultdict of lists to group issues by 'org_id'
         grouped_data = defaultdict(list)
-        # Group data by 'org_name'
-        for item in updated_issues:
-            grouped_data[item['org_name']].append(item)
+        for issue in dmp_issues:
+            # Fetch organization details for the issue
+            org_details = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*').eq('id', issue['org_id']).execute().data
+            if org_details:
+                issue['org_name'] = org_details[0]['name']
+            
+            grouped_data[issue['org_id']].append(issue)
 
+        # Prepare response in the required format
         response = []
-        for org_name, items in grouped_data.items():
+        for org_id, items in grouped_data.items():
             issues = [
                 {
-                    "html_url": item['issues']['html_issue_url'],
-                    "id": item['issues']['comment_id'],
-                    "issue_number": item['issues']['issue_number'],
-                    "name": item['issues']['title']
+                    "id": item['issue_number'],
+                    "name": item['title']
                 }
                 for item in items
             ]
             
             response.append({
-                "issues": issues,
-                "org_id": items[0]['org_id'],
-                "org_name": org_name
+                "org_id": org_id,
+                "org_name": items[0]['org_name'],  # Assuming all items in the group have the same org_name
+                "issues": issues
             })
         
-        return jsonify(response)
+        return jsonify({"issues": response})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
-      
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+
 @app.route('/issues/<owner>', methods=['GET'])
 @cross_origin(supports_credentials=True)
 @require_secret_key
 def get_issues_by_owner(owner):
     """
-    Fetch issues by owner.
+    Fetch organization details by owner's GitHub URL.
     ---
     parameters:
       - name: owner
         in: path
         type: string
         required: true
-        description: The owner of the issues
+        description: The owner of the GitHub URL (e.g., organization owner)
     responses:
       200:
-        description: Issues fetched successfully
+        description: Organization details fetched successfully
         schema:
-          type: array
-          items:
-            type: object
-      500:
-        description: Error fetching issues
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the organization
+            description:
+              type: string
+              description: Description of the organization
+      404:
+        description: Organization not found
         schema:
           type: object
           properties:
             error:
               type: string
+              description: Error message
+      500:
+        description: Error fetching organization details
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error message
     """
     try:
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('org_name', owner).order('comment_updated_at', desc=True).execute()
+        # Construct the GitHub URL based on the owner parameter
+        org_link = f"https://github.com/{owner}"
+        
+        # Fetch organization details from dmp_orgs table
+        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('link', org_link).execute()
+        
         if not response.data:
-            return jsonify({'error': "No data found"}), 200
-        data = response.data[0]
-        return jsonify({"name": data['org_name'], "description": data['org_description']})
+            return jsonify({'error': "Organization not found"}), 404
+        
+        return jsonify(response.data)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
-      
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
   
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
