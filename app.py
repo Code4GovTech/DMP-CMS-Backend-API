@@ -5,7 +5,7 @@ from flasgger import Swagger
 import re,os,traceback
 from utils import *
 from flask_cors import CORS,cross_origin
-from functools import wraps
+from v2_app import v2
 
 
 app = Flask(__name__)
@@ -45,15 +45,6 @@ def greeting():
   
   
 
-# Custom decorator to validate secret key
-def require_secret_key(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        secret_key = request.headers.get('X-Secret-Key')
-        if secret_key != SECRET_KEY:
-            return jsonify({'message': 'Unauthorized access'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 @app.route('/get-data', methods=['GET'])
 @cross_origin(supports_credentials=True)
@@ -82,7 +73,7 @@ def get_data():
         data = response.data
         return jsonify(data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 200
 
 
 
@@ -108,7 +99,7 @@ def v1get_issues():
       
     except Exception as e:
         error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 
 @app.route('/issues', methods=['GET'])
@@ -136,88 +127,99 @@ def get_issues():
               type: string
     """
     try:
-        dmp_issue =SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
+        # Fetch all issues with their details
+        dmp_issues = SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
         
-        updated_issues = []
-
-        for i in dmp_issue:
-          val = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('dmp_issue_url',i['repo_url']).execute().data 
-          if val!=[]:
-            i['issues'] = val[0] #append first obj ie all are reder same issue
-            i['org_id'] = val[0]['org_id']
-            i['org_name'] = val[0]['org_name'] 
-            
-            updated_issues.append(i)
-          
-        # Create a defaultdict of lists
+        # Create a defaultdict of lists to group issues by 'org_id'
         grouped_data = defaultdict(list)
-        # Group data by 'org_name'
-        for item in updated_issues:
-            grouped_data[item['org_name']].append(item)
+        for issue in dmp_issues:
+            # Fetch organization details for the issue
+            org_details = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*').eq('id', issue['org_id']).execute().data
+            if org_details:
+                issue['org_name'] = org_details[0]['name']
+            
+            grouped_data[issue['org_id']].append(issue)
 
+        # Prepare response in the required format
         response = []
-        for org_name, items in grouped_data.items():
+        for org_id, items in grouped_data.items():
             issues = [
                 {
-                    "html_url": item['issues']['html_issue_url'],
-                    "id": item['issues']['comment_id'],
-                    "issue_number": item['issues']['issue_number'],
-                    "name": item['issues']['title']
+                    "id": item['issue_number'],
+                    "name": item['title']
                 }
                 for item in items
             ]
             
             response.append({
-                "issues": issues,
-                "org_id": items[0]['org_id'],
-                "org_name": org_name
+                "org_id": org_id,
+                "org_name": items[0]['org_name'],  # Assuming all items in the group have the same org_name
+                "issues": issues
             })
         
-        return jsonify(response)
+        return jsonify({"issues": response})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
-      
+
 @app.route('/issues/<owner>', methods=['GET'])
 @cross_origin(supports_credentials=True)
 @require_secret_key
 def get_issues_by_owner(owner):
     """
-    Fetch issues by owner.
+    Fetch organization details by owner's GitHub URL.
     ---
     parameters:
       - name: owner
         in: path
         type: string
         required: true
-        description: The owner of the issues
+        description: The owner of the GitHub URL (e.g., organization owner)
     responses:
       200:
-        description: Issues fetched successfully
+        description: Organization details fetched successfully
         schema:
-          type: array
-          items:
-            type: object
-      500:
-        description: Error fetching issues
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the organization
+            description:
+              type: string
+              description: Description of the organization
+      404:
+        description: Organization not found
         schema:
           type: object
           properties:
             error:
               type: string
+              description: Error message
+      500:
+        description: Error fetching organization details
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error message
     """
     try:
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').eq('owner', owner).order('comment_updated_at', desc=True).execute()
+        # Construct the GitHub URL based on the owner parameter
+        org_link = f"https://github.com/{owner}"
+        
+        # Fetch organization details from dmp_orgs table
+        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('link', org_link).execute()
+        
         if not response.data:
-            return jsonify({'error': "No data found"}), 500
-        data = response.data[0]
-        return jsonify({"name": data['org_name'], "description": data['org_description']})
+            return jsonify({'error': "Organization not found"}), 404
+        
+        return jsonify(response.data)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
-      
 
   
 @app.route('/issues/<owner>/<issue>', methods=['GET'])
@@ -259,7 +261,7 @@ def get_issues_by_owner_id(owner, issue):
     SUPABASE_DB = SupabaseInterface().get_instance()
     response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
-        return jsonify({'error': "No data found"}), 500
+        return jsonify({'error': "No data found"}), 200
     data = response.data
     
     final_data = []
@@ -329,7 +331,7 @@ def get_issues_by_owner_id(owner, issue):
   
   except Exception as e:
       error_traceback = traceback.format_exc()
-      return jsonify({'error': str(e), 'traceback': error_traceback}), 500
+      return jsonify({'error': str(e), 'traceback': error_traceback}), 200
 
 
 
@@ -344,5 +346,9 @@ def check_secret_key():
       break  # Stop checking if the current route matches
 
           
+
+# Register the v2 Blueprint
+app.register_blueprint(v2, url_prefix='/v2')
+
 if __name__ == '__main__':
     app.run(debug=True)
