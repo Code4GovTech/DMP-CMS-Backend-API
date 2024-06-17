@@ -59,7 +59,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         week_data = week_data_formatter(plain_text_body,"Goals")
         
         res = {
-            "name": owner,
+            "name": dmp_issue_id['title'],
             "description": dmp_issue_id['description'],
             "mentor": define_link_data(dmp_issue_id['mentor_username']),
             "mentor_id": dmp_issue_id['mentor_username'] ,
