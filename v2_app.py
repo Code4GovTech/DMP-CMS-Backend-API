@@ -57,7 +57,6 @@ def get_issues_by_owner_id_v2(owner, issue):
             if not cont_details:
                 cont_details = dmp_issue_id['contributor_username']
         week_data = week_data_formatter(plain_text_body,"Goals")
-        
         res = {
             "name": dmp_issue_id['title'],
             "description": dmp_issue_id['description'],

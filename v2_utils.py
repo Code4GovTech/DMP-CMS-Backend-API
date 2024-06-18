@@ -36,6 +36,9 @@ def week_data_formatter(html_content, type):
         weekly_updates = []
 
         if type == "Learnings":
+            # tasks_per_week = re.split(r'<h3>Week \d+</h3>', html_content)[1:]
+            tasks_per_week = re.split(r'(<.*?>Week \d+<.*?>)', html_content)[1:]
+            tasks_per_week = [tasks_per_week[i] for i in range(1, len(tasks_per_week), 2)]
             for i, week in enumerate(week_matches):
                 task_list_html = tasks_per_week[i] if i < len(tasks_per_week) else ""
                 weekly_updates.append({
