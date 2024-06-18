@@ -39,7 +39,8 @@ def get_issues_by_owner_id_v2(owner, issue):
             # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
             
             if val['body_text']:
-                if ("Weekly Goals" in val['body_text'] and not w_goal_url) and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower()):
+                # and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower())
+                if ("Weekly Goals" in val['body_text'] and not w_goal_url):
                     w_goal_url = val['body_text']
                     plain_text_body = markdown2.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
@@ -47,7 +48,7 @@ def get_issues_by_owner_id_v2(owner, issue):
                     completed_tasks = tasks.count('x')
                     avg = round((completed_tasks/total_tasks)*100) if total_tasks!=0 else 0
 
-                if ("Weekly Learnings" in val['body_text'] and not w_learn_url) and ((val['created_by'] == dmp_issue_id['contributor_username'])):
+                if ("Weekly Learnings" in val['body_text'] and not w_learn_url):
                     w_learn_url = val['body_text']
                     plain_text_wurl = markdown2.markdown(val['body_text'])
 
