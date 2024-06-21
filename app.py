@@ -127,37 +127,21 @@ def get_issues():
               type: string
     """
     try:
-        # Fetch all issues with their details
-        dmp_issues = SupabaseInterface().get_instance().client.table('dmp_issues').select('*').execute().data
-        
-        # Create a defaultdict of lists to group issues by 'org_id'
-        grouped_data = defaultdict(list)
-        for issue in dmp_issues:
-            # Fetch organization details for the issue
-            org_details = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*').eq('id', issue['org_id']).execute().data
-            if org_details:
-                issue['org_name'] = org_details[0]['name']
-            
-            grouped_data[issue['org_id']].append(issue)
-
-        # Prepare response in the required format
-        response = []
-        for org_id, items in grouped_data.items():
-            issues = [
-                {
-                    "id": item['issue_number'],
-                    "name": item['title']
-                }
-                for item in items
-            ]
-            
-            response.append({
-                "org_id": org_id,
-                "org_name": items[0]['org_name'],  # Assuming all items in the group have the same org_name
-                "issues": issues
-            })
-        
-        return jsonify({"issues": response})
+       # Fetch all issues with their details       
+        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*, dmp_issues(*)').execute()
+        res = []
+                
+        for org in response.data:
+          obj = {}
+          issues = org['dmp_issues']
+          obj['org_id'] = org['id']
+          obj['org_name'] = org['name']
+          renamed_issues = [{"id": issue["issue_number"], "name": issue["title"]} for issue in issues]
+          obj['issues'] = renamed_issues
+          
+          res.append(obj)
+                    
+        return jsonify({"issues": res})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
