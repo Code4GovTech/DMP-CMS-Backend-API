@@ -194,7 +194,7 @@ def get_issues_by_owner(owner):
         org_link = f"https://github.com/{owner}"
         
         # Fetch organization details from dmp_orgs table
-        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('link', org_link).execute()
+        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('name', owner).execute()
         
         if not response.data:
             return jsonify({'error': "Organization not found"}), 404
