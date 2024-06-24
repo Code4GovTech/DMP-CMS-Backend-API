@@ -7,9 +7,12 @@ def define_link_data(usernames):
         if type(usernames) == list:
             for username in usernames:
                 val = {}
+                if username[0]=="@":
+                    username = username[1:]
                 val['name'] = username
                 val['link'] = "https://github.com/" + username
                 res.append(val)
+                
         if type(usernames) == str:
             if usernames[0]=="@":
                 usernames = usernames[1:]
