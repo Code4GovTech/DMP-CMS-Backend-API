@@ -15,8 +15,16 @@ def get_issues_by_owner_id_v2(owner, issue):
     try:                 
         SUPABASE_DB = SupabaseInterface().get_instance()
         # Fetch issue updates based on owner and issue number
+        
+        url = f"https://github.com/{owner}"        
+        
+        # import pdb;pdb.set_trace()
+        actual_owner = SUPABASE_DB.client.table('dmp_orgs').select('id','name','repo_owner').like('name',owner).execute().data
+        repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
+        #create url with repo owner
+        url = f"https://github.com/{repo_owner}" if repo_owner else None
+        
 
-        url = f"https://github.com/{owner}"
         dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').like('issue_url', f'%{url}%').eq('issue_number', issue).execute()
         if not dmp_issue_id.data:
           return jsonify({'error': "No data found"}), 500
