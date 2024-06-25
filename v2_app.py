@@ -72,7 +72,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             "mentor_id": dmp_issue_id['mentor_username'] ,
             "contributor":define_link_data(cont_details),
             # "contributor_id": cont_details[0]['contributor_id'],
-            "org": define_link_data(repo_owner),
+            "org": define_link_data(repo_owner)[0] if repo_owner else None,
             "weekly_goals_html": w_goal_url,
             "weekly_learnings_html": w_learn_url,
             "overall_progress":calculate_overall_progress(week_data,12),
