@@ -25,7 +25,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
 
-        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').like('issue_url', f'%{url}%').eq('issue_number', issue).execute()
+        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').like('issue_url', f'%{url}%').eq('id', issue).execute()
         if not dmp_issue_id.data:
           return jsonify({'error': "No data found"}), 500
         
@@ -46,9 +46,8 @@ def get_issues_by_owner_id_v2(owner, issue):
             # week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
             # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
             
-            if val['body_text']:
-                # and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower())
-                if ("Weekly Goals" in val['body_text'] and not w_goal_url):
+            if val['body_text']:                                
+                if ("Weekly Goals" in val['body_text'] and not w_goal_url) and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower() if dmp_issue_id['mentor_username'] else None):
                     w_goal_url = val['body_text']
                     plain_text_body = markdown2.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
@@ -73,7 +72,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             "mentor_id": dmp_issue_id['mentor_username'] ,
             "contributor":define_link_data(cont_details),
             # "contributor_id": cont_details[0]['contributor_id'],
-            "org": define_link_data(dmp_issue_id['mentor_username'])[0] if dmp_issue_id['mentor_username'] else [],
+            "org": define_link_data(repo_owner),
             "weekly_goals_html": w_goal_url,
             "weekly_learnings_html": w_learn_url,
             "overall_progress":calculate_overall_progress(week_data,12),

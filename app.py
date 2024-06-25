@@ -136,7 +136,7 @@ def get_issues():
           issues = org['dmp_issues']
           obj['org_id'] = org['id']
           obj['org_name'] = org['name']
-          renamed_issues = [{"id": issue["issue_number"], "name": issue["title"]} for issue in issues]
+          renamed_issues = [{"id": issue["id"], "name": issue["title"]} for issue in issues]
           obj['issues'] = renamed_issues
           
           res.append(obj)
