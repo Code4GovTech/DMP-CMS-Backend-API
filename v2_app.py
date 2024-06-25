@@ -46,9 +46,8 @@ def get_issues_by_owner_id_v2(owner, issue):
             # week_avg ,cont_name,cont_id,w_goal,w_learn,weekby_avgs,org_link = find_week_avg(issue_url)
             # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
             
-            if val['body_text']:
-                # and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower())
-                if ("Weekly Goals" in val['body_text'] and not w_goal_url):
+            if val['body_text']:                                
+                if ("Weekly Goals" in val['body_text'] and not w_goal_url) and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower() if dmp_issue_id['mentor_username'] else None):
                     w_goal_url = val['body_text']
                     plain_text_body = markdown2.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
