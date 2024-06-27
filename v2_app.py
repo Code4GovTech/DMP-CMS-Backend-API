@@ -47,7 +47,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             # mentors_data = find_mentors(val['issue_url']) if val['issue_url'] else {'mentors': [], 'mentor_usernames': []}
             
             if val['body_text']:                                
-                if ("Weekly Goals" in val['body_text'] and not w_goal_url) and ("@"+val['created_by'].lower() == dmp_issue_id['mentor_username'].lower() if dmp_issue_id['mentor_username'] else None):
+                if ("Weekly Goals" in val['body_text'] and not w_goal_url):
                     w_goal_url = val['body_text']
                     plain_text_body = markdown2.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
@@ -72,7 +72,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             "mentor_id": dmp_issue_id['mentor_username'] ,
             "contributor":define_link_data(cont_details),
             # "contributor_id": cont_details[0]['contributor_id'],
-            "org": define_link_data(repo_owner),
+            "org": define_link_data(repo_owner)[0] if repo_owner else None,
             "weekly_goals_html": w_goal_url,
             "weekly_learnings_html": w_learn_url,
             "overall_progress":calculate_overall_progress(week_data,12),
