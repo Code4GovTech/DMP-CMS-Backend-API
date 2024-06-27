@@ -82,8 +82,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             "weekly_learnings":week_data_formatter(plain_text_wurl,"Learnings")
         }
         
-        
-        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('dmp_id', dmp_issue_id['id']).like('title', f'%#{issue} - %').execute()
+        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
         transformed = {"pr_details": []}
         if pr_Data.data:
             for pr in pr_Data.data:
