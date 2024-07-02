@@ -4,8 +4,9 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "7000:7000"
     environment:
       FLASK_ENV: ${FLASK_ENV:-development}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
+      SECRET_KEY: ${SECRET_KEY}
