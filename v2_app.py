@@ -86,12 +86,15 @@ def get_issues_by_owner_id_v2(owner, issue):
         transformed = {"pr_details": []}
         if pr_Data.data:
             for pr in pr_Data.data:
+                pr_status = pr.get("status", "")
+                if pr_status == "closed" and pr.get("merged_at"):
+                    pr_status = "merged"
                 transformed["pr_details"].append({
                     "id": pr.get("pr_id", ""),
                     "name": pr.get("title", ""),
                     "week": determine_week(pr['created_at']),
                     "link": pr.get("link", ""),
-                    "status": pr.get("status", ""),
+                    "status": pr_status ,
                 })
                 
         res['pr_details'] = transformed['pr_details']
