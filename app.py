@@ -242,6 +242,7 @@ def get_issues_by_owner_id(owner, issue):
                 
   """
   try:         
+    print('inside get issues')
     SUPABASE_DB = SupabaseInterface().get_instance()
     response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
