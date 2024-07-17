@@ -46,7 +46,7 @@ def week_data_formatter(html_content, type):
                 task_list_html = tasks_per_week[i] if i < len(tasks_per_week) else ""
                 weekly_updates.append({
                     'week': i + 1,
-                    'content': re.sub(r'<[^>]+>', '',task_list_html).strip()
+                    'content': task_list_html.strip()
                   
                 })
             return weekly_updates
