@@ -27,7 +27,29 @@ def define_link_data(usernames):
         logging.info(f"{e}---define_link_data")
         return []
         
+def remove_unmatched_tags(text):
+    try:
+       # Remove unmatched closing tags at the beginning of the string
+        text = re.sub(r'^\s*</[^>]+>\s*', '', text)
         
+        # Regex pattern to find matched or unmatched tags
+        pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*)', re.DOTALL)
+        matches = pattern.findall(text)
+
+        cleaned_text = ''
+        for match in matches:
+            if match[0]:  # Full matched <tag>...</tag> pairs
+                cleaned_text += match[0]
+            elif match[2]:  # Unmatched opening <tag> tags
+                cleaned_text += match[2]
+        
+        return cleaned_text
+    except Exception as e:
+        print(e)
+        return text
+    
+    
+
   
 def week_data_formatter(html_content, type):
     
@@ -46,7 +68,8 @@ def week_data_formatter(html_content, type):
                 task_list_html = tasks_per_week[i] if i < len(tasks_per_week) else ""
                 weekly_updates.append({
                     'week': i + 1,
-                    'content': task_list_html.strip()
+                    'content': remove_unmatched_tags(task_list_html)
+                  
                 })
             return weekly_updates
 
