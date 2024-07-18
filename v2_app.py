@@ -27,13 +27,15 @@ def get_issues_by_owner_id_v2(owner, issue):
 
         dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').eq('id', issue).execute()
         if not dmp_issue_id.data:
-          return jsonify({'error': "No data found"}), 500
+          print(f"url....{url}....{issue}")
+          return jsonify({'error': "No data found in dmp_issue"}), 500
         
         dmp_issue_id = dmp_issue_id.data[0]        
         response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
 
         if not response.data:
-            return jsonify({'error': "No data found"}), 500
+            print(f"dmp_issue_id....{response}....{dmp_issue_id}")
+            return jsonify({'error': "No data found in dmp_issue_updates"}), 500
 
         data = response.data
         
