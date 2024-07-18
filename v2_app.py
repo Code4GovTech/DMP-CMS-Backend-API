@@ -25,7 +25,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
 
-        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').like('issue_url', f'%{url}%').eq('id', issue).execute()
+        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').eq('id', issue).execute()
         if not dmp_issue_id.data:
           print(f"url....{url}....{issue}")
           return jsonify({'error': "No data found in dmp_issue"}), 500
