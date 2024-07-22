@@ -27,27 +27,39 @@ def define_link_data(usernames):
         logging.info(f"{e}---define_link_data")
         return []
         
+
 def remove_unmatched_tags(text):
     try:
-       # Remove unmatched closing tags at the beginning of the string
+        # Remove unmatched closing tags at the beginning of the string
         text = re.sub(r'^\s*</[^>]+>\s*', '', text)
-        
         # Regex pattern to find matched or unmatched tags
-        pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*)', re.DOTALL)
+        pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*?)(?=<[^/][^>]*>|$)', re.DOTALL)
         matches = pattern.findall(text)
-
+        
         cleaned_text = ''
+        open_tags = []
+        
         for match in matches:
             if match[0]:  # Full matched <tag>...</tag> pairs
                 cleaned_text += match[0]
             elif match[2]:  # Unmatched opening <tag> tags
+                # Add the tag to the list of open tags
+                tag = re.match(r'<([^/][^>]*)>', match[2])
+                if tag:
+                    tag_name = tag.group(1).split()[0]
+                    open_tags.append(tag_name)
                 cleaned_text += match[2]
-        
+
+        # Close any unmatched opening tags
+        while open_tags:
+            tag = open_tags.pop()
+            cleaned_text += f'</{tag}>'
+
         return cleaned_text
+    
     except Exception as e:
         print(e)
         return text
-    
     
 
   
