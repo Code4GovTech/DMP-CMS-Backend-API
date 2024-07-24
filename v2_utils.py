@@ -96,6 +96,10 @@ def remove_unmatched_tags(text):
         # Remove extra unmatched angle brackets
         cleaned_text = re.sub(r'>+', '>', cleaned_text)
         cleaned_text = re.sub(r'<+', '<', cleaned_text)
+        
+        #For front end renders add ul tags 
+        if not cleaned_text.strip().startswith("<ul>"):
+            return f"<ul>{text}</ul>"
 
         return cleaned_text
     
