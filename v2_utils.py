@@ -27,14 +27,52 @@ def define_link_data(usernames):
         logging.info(f"{e}---define_link_data")
         return []
         
+def preprocess_nested_tags(text):
+    try:        
+        segments = re.split(r'(<[^>]+>)', text)
+        tag_stack = []
+        corrected_segments = []
+
+        for segment in segments:
+            if re.match(r'<[^/][^>]*>', segment):  # Opening tag
+                tag_stack.append(segment)
+                corrected_segments.append(segment)
+            elif re.match(r'</[^>]+>', segment):  # Closing tag
+                if tag_stack and tag_stack[-1][1:].split()[0] == segment[2:].split()[0]:
+                    tag_stack.pop()
+                    corrected_segments.append(segment)
+                else:
+                    continue  # Ignore unmatched closing tag
+            else:
+                corrected_segments.append(segment)
+
+        while tag_stack:
+            open_tag = tag_stack.pop()
+            tag_name = re.match(r'<([^ ]+)', open_tag).group(1)
+            corrected_segments.append(f'</{tag_name}>')
+
+        return ''.join(corrected_segments)
+
+    except Exception as e:
+        print(e,"error in preprocess_nested_tags function")
+        return text
+    
+    
 
 def remove_unmatched_tags(text):
     try:
+        # Preprocess text to handle unmatched nested tags
+        text = preprocess_nested_tags(text)
+        
         # Remove unmatched closing tags at the beginning of the string
         text = re.sub(r'^\s*</[^>]+>\s*', '', text)
         # Regex pattern to find matched or unmatched tags
         pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*?)(?=<[^/][^>]*>|$)', re.DOTALL)
         matches = pattern.findall(text)
+        
+        #If get text without html tags
+        if matches == []:
+            return text
         
         cleaned_text = ''
         open_tags = []
@@ -55,12 +93,18 @@ def remove_unmatched_tags(text):
             tag = open_tags.pop()
             cleaned_text += f'</{tag}>'
 
+        # Remove extra unmatched angle brackets
+        cleaned_text = re.sub(r'>+', '>', cleaned_text)
+        cleaned_text = re.sub(r'<+', '<', cleaned_text)
+
         return cleaned_text
     
     except Exception as e:
         print(e)
         return text
-    
+
+
+
 
   
 def week_data_formatter(html_content, type):
