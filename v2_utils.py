@@ -115,15 +115,15 @@ def week_data_formatter(html_content, type):
     
     try:
         # Use regex to find week titles (e.g., Week 1, Week 2) and their corresponding task lists
-        week_matches = re.findall(r'(Week \d+)', html_content)
-        tasks_per_week = re.split(r'Week \d+', html_content)[1:]  # Split the content by weeks and skip the first empty split
+        week_matches = re.findall(r'Week\s*-?\s*\d+', html_content)
+        tasks_per_week = re.split(r'Week\s*-?\s*\d+', html_content)[1:]  # Split the content by weeks and skip the first empty split
 
         weekly_updates = []
 
         if type == "Learnings":
             # tasks_per_week = re.split(r'<h3>Week \d+</h3>', html_content)[1:]
-            tasks_per_week = re.split(r'(<.*?>Week \d+<.*?>)', html_content)[1:]
-            tasks_per_week = [tasks_per_week[i] for i in range(1, len(tasks_per_week), 2)]
+            tasks_per_week = re.split(r'Week\s*-?\s*\d+', html_content)[1:]
+            tasks_per_week = [tasks_per_week[i] for i in range(0, len(tasks_per_week))]
             for i, week in enumerate(week_matches):
                 task_list_html = tasks_per_week[i] if i < len(tasks_per_week) else ""
                 weekly_updates.append({
