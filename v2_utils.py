@@ -27,43 +27,103 @@ def define_link_data(usernames):
         logging.info(f"{e}---define_link_data")
         return []
         
+def preprocess_nested_tags(text):
+    try:        
+        segments = re.split(r'(<[^>]+>)', text)
+        tag_stack = []
+        corrected_segments = []
+
+        for segment in segments:
+            if re.match(r'<[^/][^>]*>', segment):  # Opening tag
+                tag_stack.append(segment)
+                corrected_segments.append(segment)
+            elif re.match(r'</[^>]+>', segment):  # Closing tag
+                if tag_stack and tag_stack[-1][1:].split()[0] == segment[2:].split()[0]:
+                    tag_stack.pop()
+                    corrected_segments.append(segment)
+                else:
+                    continue  # Ignore unmatched closing tag
+            else:
+                corrected_segments.append(segment)
+
+        while tag_stack:
+            open_tag = tag_stack.pop()
+            tag_name = re.match(r'<([^ ]+)', open_tag).group(1)
+            corrected_segments.append(f'</{tag_name}>')
+
+        return ''.join(corrected_segments)
+
+    except Exception as e:
+        print(e,"error in preprocess_nested_tags function")
+        return text
+    
+    
+
 def remove_unmatched_tags(text):
     try:
-       # Remove unmatched closing tags at the beginning of the string
-        text = re.sub(r'^\s*</[^>]+>\s*', '', text)
+        # Preprocess text to handle unmatched nested tags
+        text = preprocess_nested_tags(text)
         
+        # Remove unmatched closing tags at the beginning of the string
+        text = re.sub(r'^\s*</[^>]+>\s*', '', text)
         # Regex pattern to find matched or unmatched tags
-        pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*)', re.DOTALL)
+        pattern = re.compile(r'(<([^>]+)>.*?</\2>)|(<[^/][^>]*>.*?)(?=<[^/][^>]*>|$)', re.DOTALL)
         matches = pattern.findall(text)
-
+        
+        #If get text without html tags
+        if matches == []:
+            return text
+        
         cleaned_text = ''
+        open_tags = []
+        
         for match in matches:
             if match[0]:  # Full matched <tag>...</tag> pairs
                 cleaned_text += match[0]
             elif match[2]:  # Unmatched opening <tag> tags
+                # Add the tag to the list of open tags
+                tag = re.match(r'<([^/][^>]*)>', match[2])
+                if tag:
+                    tag_name = tag.group(1).split()[0]
+                    open_tags.append(tag_name)
                 cleaned_text += match[2]
+
+        # Close any unmatched opening tags
+        while open_tags:
+            tag = open_tags.pop()
+            cleaned_text += f'</{tag}>'
+
+        # Remove extra unmatched angle brackets
+        cleaned_text = re.sub(r'>+', '>', cleaned_text)
+        cleaned_text = re.sub(r'<+', '<', cleaned_text)
         
+        #For front end renders add ul tags 
+        if not cleaned_text.strip().startswith("<ul>"):
+            return f"<ul>{cleaned_text}</ul>"
+
         return cleaned_text
+    
     except Exception as e:
         print(e)
         return text
-    
-    
+
+
+
 
   
 def week_data_formatter(html_content, type):
     
     try:
         # Use regex to find week titles (e.g., Week 1, Week 2) and their corresponding task lists
-        week_matches = re.findall(r'(Week \d+)', html_content)
-        tasks_per_week = re.split(r'Week \d+', html_content)[1:]  # Split the content by weeks and skip the first empty split
+        week_matches = re.findall(r'Week\s*-?\s*\d+', html_content)
+        tasks_per_week = re.split(r'Week\s*-?\s*\d+', html_content)[1:]  # Split the content by weeks and skip the first empty split
 
         weekly_updates = []
 
         if type == "Learnings":
             # tasks_per_week = re.split(r'<h3>Week \d+</h3>', html_content)[1:]
-            tasks_per_week = re.split(r'(<.*?>Week \d+<.*?>)', html_content)[1:]
-            tasks_per_week = [tasks_per_week[i] for i in range(1, len(tasks_per_week), 2)]
+            tasks_per_week = re.split(r'Week\s*-?\s*\d+', html_content)[1:]
+            tasks_per_week = [tasks_per_week[i] for i in range(0, len(tasks_per_week))]
             for i, week in enumerate(week_matches):
                 task_list_html = tasks_per_week[i] if i < len(tasks_per_week) else ""
                 weekly_updates.append({
