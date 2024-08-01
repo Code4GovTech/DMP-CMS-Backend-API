@@ -3,6 +3,7 @@ from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
+from query import PostgresQuery
 from utils import *
 from flask_cors import CORS,cross_origin
 from v2_app import v2
@@ -127,21 +128,11 @@ def get_issues():
               type: string
     """
     try:
-       # Fetch all issues with their details       
-        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*, dmp_issues(*)').execute()
-        res = []
-                
-        for org in response.data:
-          obj = {}
-          issues = org['dmp_issues']
-          obj['org_id'] = org['id']
-          obj['org_name'] = org['name']
-          renamed_issues = [{"id": issue["id"], "name": issue["title"]} for issue in issues]
-          obj['issues'] = renamed_issues
-          
-          res.append(obj)
-                    
-        return jsonify({"issues": res})
+      # Fetch all issues with their details       
+      
+      response = PostgresQuery.get_issue_query()
+                                  
+      return jsonify({"issues": response})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -190,16 +181,14 @@ def get_issues_by_owner(owner):
               description: Error message
     """
     try:
-        # Construct the GitHub URL based on the owner parameter
-        org_link = f"https://github.com/{owner}"
-        
+               
         # Fetch organization details from dmp_orgs table
-        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('name', owner).execute()
+        response = PostgresQuery.get_issue_owner(owner)
         
-        if not response.data:
+        if not response:
             return jsonify({'error': "Organization not found"}), 404
         
-        return jsonify(response.data)
+        return jsonify(response)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
