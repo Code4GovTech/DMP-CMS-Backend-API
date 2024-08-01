@@ -5,7 +5,10 @@ from supabase.lib.client_options import ClientOptions
 from abc import ABC, abstractmethod
 import psycopg2,json
 from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 
+
+load_dotenv()
 
 client_options = ClientOptions(postgrest_client_timeout=None)
 
@@ -19,9 +22,7 @@ class SupabaseInterface():
         if not SupabaseInterface._instance:
                         
             # Load environment variables
-            from dotenv import load_dotenv
-            load_dotenv()
-
+        
             SUPABASE_URL = os.getenv('SUPABASE_URL')
             SUPABASE_KEY = os.getenv('SUPABASE_KEY')
             self.client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
