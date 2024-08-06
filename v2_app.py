@@ -5,7 +5,7 @@ from utils import require_secret_key
 from db import SupabaseInterface
 from utils import determine_week
 from v2_utils import calculate_overall_progress, define_link_data, week_data_formatter
-from query import PostgresQuery
+from query import PostgresQuery,PostgresORM
 
 
 v2 = Blueprint('v2', __name__)
@@ -20,19 +20,19 @@ def get_issues_by_owner_id_v2(owner, issue):
         
         url = f"https://github.com/{owner}"        
         
-        actual_owner = PostgresQuery.get_actual_owner_query(owner)
+        actual_owner = PostgresORM.get_actual_owner_query(owner)
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
-        dmp_issue_id = PostgresQuery.get_dmp_issues(issue)
+        dmp_issue_id = PostgresORM.get_dmp_issues(issue)
         if not dmp_issue_id:
           print(f"url....{url}....{issue}")
           return jsonify({'error': "No data found in dmp_issue"}), 500
         
         dmp_issue_id = dmp_issue_id[0]        
 
-        response = PostgresQuery.get_dmp_issue_updates(dmp_issue_id['id'])
+        response = PostgresORM.get_dmp_issue_updates(dmp_issue_id['id'])    
         if not response:
             print(f"dmp_issue_id....{response}....{dmp_issue_id}")
             return jsonify({'error': "No data found in dmp_issue_updates"}), 500
@@ -85,7 +85,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         }
         
         
-        pr_Data = PostgresQuery.get_pr_data(dmp_issue_id['id'])
+        pr_Data = PostgresORM.get_pr_data(dmp_issue_id['id'])        
         transformed = {"pr_details": []}
         if pr_Data:
             for pr in pr_Data:

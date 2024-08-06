@@ -3,15 +3,23 @@ from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
-from query import PostgresQuery
+from query import PostgresQuery,PostgresORM
 from utils import *
 from flask_cors import CORS,cross_origin
 from v2_app import v2
+from flask_sqlalchemy import SQLAlchemy
+from models import db
+
 
 
 app = Flask(__name__)
 CORS(app,supports_credentials=True)
 
+
+app.config['SQLALCHEMY_DATABASE_URI'] = SupabaseInterface.get_postgres_uri()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
 
 Swagger(app)
 
@@ -128,9 +136,16 @@ def get_issues():
               type: string
     """
     try:
-      # Fetch all issues with their details       
+      # Fetch all issues with their details            
+      data = PostgresORM.get_issue_query()
+      response = []
       
-      response = PostgresQuery.get_issue_query()
+      for result in data:
+        response.append({
+            'org_id': result.org_id,
+            'org_name': result.org_name,
+            'issues': result.issues
+        })
                                   
       return jsonify({"issues": response})
       
@@ -183,12 +198,13 @@ def get_issues_by_owner(owner):
     try:
                
         # Fetch organization details from dmp_orgs table
-        response = PostgresQuery.get_issue_owner(owner)
-        
+        response = PostgresORM.get_issue_owner(owner)       
         if not response:
             return jsonify({'error': "Organization not found"}), 404
-        
-        return jsonify(response)
+          
+        orgs_dict = [org.to_dict() for org in response]
+
+        return jsonify(orgs_dict)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
