@@ -1,6 +1,7 @@
 import traceback,re
 from flask import Blueprint, jsonify, request
 import markdown2
+import markdown
 from utils import require_secret_key
 from db import SupabaseInterface
 from utils import determine_week
@@ -51,7 +52,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             if val['body_text']:                                
                 if ("Weekly Goals" in val['body_text'] and not w_goal_url):
                     w_goal_url = val['body_text']
-                    plain_text_body = markdown2.markdown(val['body_text'])
+                    plain_text_body = markdown.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
                     total_tasks = len(tasks)
                     completed_tasks = tasks.count('x')
