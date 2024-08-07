@@ -1,4 +1,4 @@
-import logging,re,markdown2
+import logging,re,markdown
 
 # Func to create name and link for all mentors and contributors
 def define_link_data(usernames):
