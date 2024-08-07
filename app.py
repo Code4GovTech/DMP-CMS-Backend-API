@@ -260,7 +260,7 @@ def get_issues_by_owner_id(owner, issue):
       if val['body_text']:
         if "Weekly Goals" in val['body_text'] and not w_goal_url:
             w_goal_url = val['body_text']
-            plain_text_body = markdown2.markdown(val['body_text'])
+            plain_text_body = markdown.markdown(val['body_text'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
             total_tasks = len(tasks)

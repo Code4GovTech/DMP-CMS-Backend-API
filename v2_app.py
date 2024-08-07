@@ -1,6 +1,5 @@
 import traceback,re
 from flask import Blueprint, jsonify, request
-import markdown2
 import markdown
 from utils import require_secret_key
 from db import SupabaseInterface
@@ -60,7 +59,7 @@ def get_issues_by_owner_id_v2(owner, issue):
 
                 if ("Weekly Learnings" in val['body_text'] and not w_learn_url):
                     w_learn_url = val['body_text']
-                    plain_text_wurl = markdown2.markdown(val['body_text'])
+                    plain_text_wurl = markdown.markdown(val['body_text'])
 
             
             # mentors = mentors_data['mentors']
