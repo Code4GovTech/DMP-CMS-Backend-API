@@ -1,4 +1,4 @@
-import requests,re,markdown2,os
+import requests,re,markdown,os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser
@@ -115,7 +115,7 @@ def find_week_data(issue_details):
                             
         for week in weekly_updates:
             
-            plain_text_body = markdown2.markdown(week['val']['body'])
+            plain_text_body = markdown.markdown(week['val']['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
             total_tasks = len(tasks)
@@ -154,7 +154,7 @@ def find_week_avg(url):
         
         if "Weekly Goals" in item['body']:
             w_goal_url = item['body']
-            plain_text_body = markdown2.markdown(issue_details[0]['body'])
+            plain_text_body = markdown.markdown(issue_details[0]['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
             total_tasks = len(tasks)
