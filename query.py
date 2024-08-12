@@ -1,4 +1,3 @@
-from db import SupabaseInterface
 from models import *
 from sqlalchemy import func
 import os

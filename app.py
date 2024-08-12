@@ -1,5 +1,4 @@
 from flask import Flask, jsonify,request,url_for
-from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
@@ -54,61 +53,6 @@ def greeting():
   
   
 
-
-@app.route('/get-data', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_data():
-    """
-    Fetch data from Supabase.
-    ---
-    responses:
-      200:
-        description: Data fetched successfully
-        schema:
-          type: array
-          items:
-            type: object
-      500:
-        description: Error fetching data
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-    """
-    try:
-        response = SupabaseInterface().get_instance().client.table('dmp_pr_updates').select('*').execute()
-        data = response.data
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 200
-
-
-
-@app.route('/v1/issues', methods=['GET'])
-@require_secret_key
-def v1get_issues():
-    try:        
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
-        data = response.data
-                
-        #group data based on issues
-        grouped_data = defaultdict(list)
-        for record in data:
-            issue_url = record['issue_url']
-            grouped_data[issue_url].append({
-                'id': record['id'],
-                'name': record['body_text']
-            })
-
-        result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
-        grouped_data = group_by_owner(result)
-        return jsonify(grouped_data)
-      
-    except Exception as e:
-        error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 
 @app.route('/issues', methods=['GET'])
