@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app,supports_credentials=True)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = SupabaseInterface.get_postgres_uri()
+app.config['SQLALCHEMY_DATABASE_URI'] = PostgresORM.get_postgres_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)

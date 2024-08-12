@@ -56,13 +56,7 @@ class SupabaseInterface():
         )
         return conn
     
-    def get_postgres_uri():
-        DB_HOST = os.getenv('POSTGRES_DB_HOST')
-        DB_NAME = os.getenv('POSTGRES_DB_NAME')
-        DB_USER = os.getenv('POSTGRES_DB_USER')
-        DB_PASS = os.getenv('POSTGRES_DB_PASS')
-        
-        return f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}'
+    
     
     def postgres_query(query,params=None):        
         conn = SupabaseInterface.get_postgres_connection()

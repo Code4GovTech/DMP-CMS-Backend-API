@@ -1,7 +1,11 @@
 from db import SupabaseInterface
 from models import *
 from sqlalchemy import func
+import os
+from dotenv import load_dotenv
 
+
+load_dotenv()
 class PostgresQuery:
 
     def get_issue_query():
@@ -81,6 +85,14 @@ class PostgresQuery:
     
 
 class PostgresORM:
+    
+    def get_postgres_uri():
+        DB_HOST = os.getenv('POSTGRES_DB_HOST')
+        DB_NAME = os.getenv('POSTGRES_DB_NAME')
+        DB_USER = os.getenv('POSTGRES_DB_USER')
+        DB_PASS = os.getenv('POSTGRES_DB_PASS')
+        
+        return f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}'
 
     def get_issue_query():
         results = (
