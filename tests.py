@@ -1,8 +1,10 @@
 import unittest
 from v2_utils import remove_unmatched_tags
 from app import app
-import json, random
+import json, random,os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class CustomTestResult(unittest.TextTestResult):
     def addSuccess(self, test):
@@ -76,7 +78,7 @@ class TestIssuesEndpoints(unittest.TestCase):
         self.app.testing = True
         self.issues_data = None  # To store issues data for use in subsequent tests
         self.headers = {
-            'x-secret-key': 'QrfmzUjsKzPzUXEleSztEv8g'
+            'x-secret-key':os.getenv('SECRET_KEY')
         }
         
         # Fetch issues data during setup

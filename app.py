@@ -3,7 +3,7 @@ from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
-from query import PostgresQuery,PostgresORM
+from query import PostgresORM
 from utils import *
 from flask_cors import CORS,cross_origin
 from v2_app import v2

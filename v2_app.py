@@ -2,10 +2,9 @@ import traceback,re
 from flask import Blueprint, jsonify, request
 import markdown
 from utils import require_secret_key
-from db import SupabaseInterface
 from utils import determine_week
 from v2_utils import calculate_overall_progress, define_link_data, week_data_formatter
-from query import PostgresQuery,PostgresORM
+from query import PostgresORM
 
 
 v2 = Blueprint('v2', __name__)
