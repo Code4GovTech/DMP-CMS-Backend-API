@@ -250,7 +250,7 @@ def determine_week(input_date_str, start_date_str='2024-06-11'):
     try:
         # Convert the start date string to a datetime object
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        input_date = parser.parse(input_date_str).replace(tzinfo=None)
+        input_date = parser.parse(input_date_str).replace(tzinfo=None) if type(input_date_str) == str else input_date_str.replace(tzinfo=None)
         
         # Calculate the difference in days
         difference_in_days = (input_date - start_date).days        
