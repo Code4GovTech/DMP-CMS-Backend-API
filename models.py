@@ -44,6 +44,7 @@ class DmpIssue(db.Model):
     title = db.Column(db.String, nullable=False)
     org_id = db.Column(db.Integer, db.ForeignKey('dmp_orgs.id'), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    repo_owner = db.Column(db.Text, nullable=True)
     repo = db.Column(db.String, nullable=True)
     
     
