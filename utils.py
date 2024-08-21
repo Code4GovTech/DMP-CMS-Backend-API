@@ -1,4 +1,4 @@
-import requests,re,markdown2,os
+import requests,re,markdown,os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from dateutil import parser
@@ -115,7 +115,7 @@ def find_week_data(issue_details):
                             
         for week in weekly_updates:
             
-            plain_text_body = markdown2.markdown(week['val']['body'])
+            plain_text_body = markdown.markdown(week['val']['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
             total_tasks = len(tasks)
@@ -154,7 +154,7 @@ def find_week_avg(url):
         
         if "Weekly Goals" in item['body']:
             w_goal_url = item['body']
-            plain_text_body = markdown2.markdown(issue_details[0]['body'])
+            plain_text_body = markdown.markdown(issue_details[0]['body'])
                 
             tasks = re.findall(r'\[(x| )\]', plain_text_body)
             total_tasks = len(tasks)
@@ -250,7 +250,7 @@ def determine_week(input_date_str, start_date_str='2024-06-11'):
     try:
         # Convert the start date string to a datetime object
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        input_date = parser.parse(input_date_str).replace(tzinfo=None)
+        input_date = parser.parse(input_date_str).replace(tzinfo=None) if type(input_date_str) == str else input_date_str.replace(tzinfo=None)
         
         # Calculate the difference in days
         difference_in_days = (input_date - start_date).days        

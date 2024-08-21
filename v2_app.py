@@ -1,10 +1,11 @@
 import traceback,re
 from flask import Blueprint, jsonify, request
-import markdown2
+import markdown
 from utils import require_secret_key
-from db import SupabaseInterface
 from utils import determine_week
 from v2_utils import calculate_overall_progress, define_link_data, week_data_formatter
+from query import PostgresORM
+
 
 v2 = Blueprint('v2', __name__)
 
@@ -12,32 +13,31 @@ v2 = Blueprint('v2', __name__)
 @v2.route('/issues/<owner>/<issue>', methods=['GET'])
 @require_secret_key
 def get_issues_by_owner_id_v2(owner, issue):
+    
     try:                 
-        SUPABASE_DB = SupabaseInterface().get_instance()
         # Fetch issue updates based on owner and issue number
         
         url = f"https://github.com/{owner}"        
         
         # import pdb;pdb.set_trace()
-        actual_owner = SUPABASE_DB.client.table('dmp_issues').select('id','repo_owner').ilike('repo_owner', f'%{owner}%').execute().data
+        actual_owner = PostgresORM.get_actual_owner_query(owner)
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
-
-        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').eq('id', issue).execute()
-        if not dmp_issue_id.data:
+        dmp_issue_id = PostgresORM.get_dmp_issues(issue)
+        if not dmp_issue_id:
           print(f"url....{url}....{issue}")
           return jsonify({'error': "No data found in dmp_issue"}), 500
         
-        dmp_issue_id = dmp_issue_id.data[0]        
-        response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
+        dmp_issue_id = dmp_issue_id[0]        
 
-        if not response.data:
+        response = PostgresORM.get_dmp_issue_updates(dmp_issue_id['id'])    
+        if not response:
             print(f"dmp_issue_id....{response}....{dmp_issue_id}")
             return jsonify({'error': "No data found in dmp_issue_updates"}), 500
 
-        data = response.data
+        data = response
         
         final_data = []
         w_learn_url,w_goal_url,avg,cont_details,plain_text_body,plain_text_wurl = None,None,None,None,None,None
@@ -51,7 +51,7 @@ def get_issues_by_owner_id_v2(owner, issue):
             if val['body_text']:                                
                 if ("Weekly Goals" in val['body_text'] and not w_goal_url):
                     w_goal_url = val['body_text']
-                    plain_text_body = markdown2.markdown(val['body_text'])
+                    plain_text_body = markdown.markdown(val['body_text'])
                     tasks = re.findall(r'\[(x| )\]', plain_text_body)
                     total_tasks = len(tasks)
                     completed_tasks = tasks.count('x')
@@ -59,7 +59,7 @@ def get_issues_by_owner_id_v2(owner, issue):
 
                 if ("Weekly Learnings" in val['body_text'] and not w_learn_url):
                     w_learn_url = val['body_text']
-                    plain_text_wurl = markdown2.markdown(val['body_text'])
+                    plain_text_wurl = markdown.markdown(val['body_text'])
 
             
             # mentors = mentors_data['mentors']
@@ -84,10 +84,11 @@ def get_issues_by_owner_id_v2(owner, issue):
             "weekly_learnings":week_data_formatter(plain_text_wurl,"Learnings")
         }
         
-        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
+        
+        pr_Data = PostgresORM.get_pr_data(dmp_issue_id['id'])        
         transformed = {"pr_details": []}
-        if pr_Data.data:
-            for pr in pr_Data.data:
+        if pr_Data:
+            for pr in pr_Data:
                 pr_status = pr.get("status", "")
                 if pr_status == "closed" and pr.get("merged_at"):
                     pr_status = "merged"
