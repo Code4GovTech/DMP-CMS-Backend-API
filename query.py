@@ -42,7 +42,7 @@ class PostgresORM:
         return response
     
     def get_actual_owner_query(owner):
-        results = DmpOrg.query.filter(DmpOrg.name.like(f'%{owner}%')).all()
+        results = DmpIssue.query.filter(DmpIssue.repo_owner.like(f'%{owner}%')).all()
         results = [val.to_dict() for val in results]
         return results
     

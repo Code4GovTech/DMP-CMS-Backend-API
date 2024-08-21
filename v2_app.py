@@ -19,6 +19,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         
         url = f"https://github.com/{owner}"        
         
+        # import pdb;pdb.set_trace()
         actual_owner = PostgresORM.get_actual_owner_query(owner)
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
