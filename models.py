@@ -64,7 +64,8 @@ class DmpIssue(db.Model):
             'title': self.title,
             'org_id': self.org_id,
             'description': self.description,
-            'repo': self.repo
+            'repo': self.repo,
+            'repo_owner': self.repo_owner
         }
 
 class DmpIssueUpdate(db.Model):
