@@ -19,7 +19,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         url = f"https://github.com/{owner}"        
         
         # import pdb;pdb.set_trace()
-        actual_owner = SUPABASE_DB.client.table('dmp_orgs').select('id','name','repo_owner').like('name',owner).execute().data
+        actual_owner = SUPABASE_DB.client.table('dmp_issues').select('id','name','repo_owner').like('repo_owner',owner).execute().data
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
         url = f"https://github.com/{repo_owner}" if repo_owner else None
