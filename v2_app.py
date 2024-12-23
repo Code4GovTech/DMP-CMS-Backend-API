@@ -4,15 +4,24 @@ import markdown
 from utils import require_secret_key
 from utils import determine_week
 from v2_utils import calculate_overall_progress, define_link_data, week_data_formatter
-from query import PostgresORM
+# from query import PostgresORM
+from shared_migrations.db.dmp_api import DmpAPIQueries
+# from app import async_session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from shared_migrations.db import get_postgres_uri
 
 
 v2 = Blueprint('v2', __name__)
 
 
+engine = create_async_engine(get_postgres_uri(), echo=False,poolclass=NullPool)
+async_session = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
 @v2.route('/issues/<owner>/<issue>', methods=['GET'])
-@require_secret_key
-def get_issues_by_owner_id_v2(owner, issue):
+# @require_secret_key
+async def get_issues_by_owner_id_v2(owner, issue):
     
     try:                 
         # Fetch issue updates based on owner and issue number
@@ -20,19 +29,19 @@ def get_issues_by_owner_id_v2(owner, issue):
         url = f"https://github.com/{owner}"        
         
         # import pdb;pdb.set_trace()
-        actual_owner = PostgresORM.get_actual_owner_query(owner)
+        actual_owner = await DmpAPIQueries.get_actual_owner_query(async_session, owner)
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
-        dmp_issue_id = PostgresORM.get_dmp_issues(issue)
+        dmp_issue_id = await DmpAPIQueries.get_dmp_issues(async_session, issue)
         if not dmp_issue_id:
           print(f"url....{url}....{issue}")
           return jsonify({'error': "No data found in dmp_issue"}), 500
         
         dmp_issue_id = dmp_issue_id[0]        
 
-        response = PostgresORM.get_dmp_issue_updates(dmp_issue_id['id'])    
+        response = await DmpAPIQueries.get_dmp_issue_updates(async_session, dmp_issue_id['id'])    
         if not response:
             print(f"dmp_issue_id....{response}....{dmp_issue_id}")
             return jsonify({'error': "No data found in dmp_issue_updates"}), 500
@@ -85,7 +94,7 @@ def get_issues_by_owner_id_v2(owner, issue):
         }
         
         
-        pr_Data = PostgresORM.get_pr_data(dmp_issue_id['id'])        
+        pr_Data = await DmpAPIQueries.get_pr_data(async_session, dmp_issue_id['id'])        
         transformed = {"pr_details": []}
         if pr_Data:
             for pr in pr_Data:

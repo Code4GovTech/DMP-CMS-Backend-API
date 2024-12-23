@@ -2,12 +2,17 @@ from flask import Flask, jsonify,request,url_for
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
-from query import PostgresORM
+# from query import PostgresORM
 from utils import *
 from flask_cors import CORS,cross_origin
 from v2_app import v2
 from flask_sqlalchemy import SQLAlchemy
 from models import db
+from shared_migrations.db import get_postgres_uri
+from shared_migrations.db.dmp_api import DmpAPIQueries
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 
 
 
@@ -15,8 +20,13 @@ app = Flask(__name__)
 CORS(app,supports_credentials=True)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = PostgresORM.get_postgres_uri()
+app.config['SQLALCHEMY_DATABASE_URI'] = get_postgres_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize Async SQLAlchemy
+engine = create_async_engine(app.config['SQLALCHEMY_DATABASE_URI'], echo=False,poolclass=NullPool)
+async_session = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
 
 db.init_app(app)
 
@@ -56,9 +66,9 @@ def greeting():
       
 
 @app.route('/issues', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_issues():
+# @cross_origin(supports_credentials=True)
+# @require_secret_key
+async def get_issues():
     """
     Fetch all issues and group by owner.
     ---
@@ -80,8 +90,9 @@ def get_issues():
               type: string
     """
     try:
-      # Fetch all issues with their details            
-      data = PostgresORM.get_issue_query()
+      # Fetch all issues with their details 
+      print('inside get all issues')           
+      data = await DmpAPIQueries.get_issue_query(async_session)
       response = []
       
       for result in data:
@@ -98,9 +109,9 @@ def get_issues():
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
 @app.route('/issues/<owner>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_issues_by_owner(owner):
+# @cross_origin(supports_credentials=True)
+# @require_secret_key
+async def get_issues_by_owner(owner):
     """
     Fetch organization details by owner's GitHub URL.
     ---
@@ -142,7 +153,7 @@ def get_issues_by_owner(owner):
     try:
                
         # Fetch organization details from dmp_orgs table
-        response = PostgresORM.get_issue_owner(owner)       
+        response = await DmpAPIQueries.get_issue_owner(async_session, owner)       
         if not response:
             return jsonify({'error': "Organization not found"}), 404
           
@@ -192,7 +203,7 @@ def get_issues_by_owner_id(owner, issue):
   """
   try:         
     print('inside get issues')
-    SUPABASE_DB = SupabaseInterface().get_instance()
+    SUPABASE_DB = DmpAPIQueries.get_instance()
     response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
         return jsonify({'error': "No data found"}), 200
