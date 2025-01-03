@@ -5,11 +5,12 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-COPY . /app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git openssh-client && \
     rm -rf /var/lib/apt/lists/*
+
+COPY . /app
 
 RUN --mount=type=ssh git submodule update --init --recursive
 
