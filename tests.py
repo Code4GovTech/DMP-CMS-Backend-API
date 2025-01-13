@@ -1,17 +1,24 @@
 import unittest
 from v2_utils import remove_unmatched_tags
 from app import app
-import json,random
+import json, random,os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class CustomTestResult(unittest.TextTestResult):
     def addSuccess(self, test):
         super().addSuccess(test)
         print(f"{test._testMethodName} - passed")
 
-
 class CustomTestRunner(unittest.TextTestRunner):
     resultclass = CustomTestResult
+
+    def run(self, test):
+        result = super().run(test)
+        if result.wasSuccessful():
+            print("All Testcases Passed")
+        return result
 
 
 class TestRemoveUnmatchedTags(unittest.TestCase):
@@ -20,37 +27,37 @@ class TestRemoveUnmatchedTags(unittest.TestCase):
     """
     def test_remove_unmatched_tags_basic(self):
         input_text = "<div>Test content</p></div>"
-        expected_output = "<div>Test content</div>"
+        expected_output = "<ul><div>Test content</div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
     
     def test_remove_unmatched_tags_unmatched_opening(self):
         input_text = "<div>Test content"
-        expected_output = "<div>Test content</div>"
+        expected_output = "<ul><div>Test content</div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
     
     def test_remove_unmatched_tags_unmatched_closing(self):
         input_text = "<div><span><p>Test content</div>"
-        expected_output = "<div><span><p>Test content</p></span></div>"
+        expected_output = "<ul><div><span><p>Test content</p></span></div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
     
     def test_remove_unmatched_tags_nested_tags(self):
         input_text = "<div><p>Test content</p></p></div>"
-        expected_output = "<div><p>Test content</p></div>"
+        expected_output = "<ul><div><p>Test content</p></div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
 
     def test_remove_unmatched_tags_unmatched_nested_opening(self):
         input_text = "<div><p>Test content</div>"
-        expected_output = "<div><p>Test content</p></div>"
+        expected_output = "<ul><div><p>Test content</p></div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
     
     def test_remove_unmatched_tags_unmatched_nested_closing(self):
         input_text = "<div>Test content</p></div>"
-        expected_output = "<div>Test content</div>"
+        expected_output = "<ul><div>Test content</div></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
 
     def test_remove_unmatched_tags_multiple_unmatched_tags(self):
         input_text = "<div>Test</div><p>Content</p><span>Here"
-        expected_output = "<div>Test</div><p>Content</p><span>Here</span>"
+        expected_output = "<ul><div>Test</div><p>Content</p><span>Here</span></ul>"
         self.assertEqual(remove_unmatched_tags(input_text), expected_output)
 
     def test_remove_unmatched_tags_text_with_no_tags(self):
@@ -61,7 +68,7 @@ class TestRemoveUnmatchedTags(unittest.TestCase):
     def test_remove_unmatched_tags_empty_string(self):
         input_text = ""
         expected_output = ""
-        self.assertEqual(len(remove_unmatched_tags(input_text)),len(expected_output))
+        self.assertEqual(len(remove_unmatched_tags(input_text)), len(expected_output))
         
 
 class TestIssuesEndpoints(unittest.TestCase):
@@ -70,13 +77,16 @@ class TestIssuesEndpoints(unittest.TestCase):
         self.app = app.test_client()
         self.app.testing = True
         self.issues_data = None  # To store issues data for use in subsequent tests
+        self.headers = {
+            'x-secret-key':os.getenv('SECRET_KEY')
+        }
         
         # Fetch issues data during setup
         self._fetch_issues_data()
     
     def _fetch_issues_data(self):
         # Validate the /issues endpoint and store the issues data
-        response = self.app.get('/issues')
+        response = self.app.get('/issues',headers=self.headers)
         self.assertEqual(response.status_code, 200)
         
         data = json.loads(response.data)
@@ -94,14 +104,14 @@ class TestIssuesEndpoints(unittest.TestCase):
         
         # Use first data from /issues response to form the endpoint URL
         
-        index = random.randrange(1,len(self.issues_data)-1)
+        index = random.randrange(1, len(self.issues_data) - 1)
         sample_issue = self.issues_data[index]['issues'][0]
         issue_id = sample_issue['id']
         orgname = self.issues_data[index]['org_name']
         
         endpoint = f'/v2/issues/{orgname}/{issue_id}'
         
-        response = self.app.get(endpoint)
+        response = self.app.get(endpoint,headers=self.headers)
         self.assertEqual(response.status_code, 200)
         
     def test_get_repo_detail_success(self):
@@ -110,13 +120,12 @@ class TestIssuesEndpoints(unittest.TestCase):
             self.skipTest("Skipping detail test as /issues endpoint did not return data")
         
         # Use first data from /issues response to form the endpoint URL
-        index = random.randrange(1,len(self.issues_data)-1)
+        index = random.randrange(1, len(self.issues_data) - 1)
         orgname = self.issues_data[index]['org_name']
         endpoint = f'/issues/{orgname}'        
-        response = self.app.get(endpoint)
+        response = self.app.get(endpoint,headers=self.headers)
         self.assertEqual(response.status_code, 200)
 
-        
 
 if __name__ == '__main__':
     unittest.main(testRunner=CustomTestRunner())

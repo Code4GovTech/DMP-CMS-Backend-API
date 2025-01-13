@@ -2,42 +2,51 @@ import traceback,re
 from flask import Blueprint, jsonify, request
 import markdown
 from utils import require_secret_key
-from db import SupabaseInterface
 from utils import determine_week
 from v2_utils import calculate_overall_progress, define_link_data, week_data_formatter
+# from query import PostgresORM
+from shared_migrations.db.dmp_api import DmpAPIQueries
+# from app import async_session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from shared_migrations.db import get_postgres_uri
+
 
 v2 = Blueprint('v2', __name__)
 
 
+engine = create_async_engine(get_postgres_uri(), echo=False,poolclass=NullPool)
+async_session = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
 @v2.route('/issues/<owner>/<issue>', methods=['GET'])
-@require_secret_key
-def get_issues_by_owner_id_v2(owner, issue):
+# @require_secret_key
+async def get_issues_by_owner_id_v2(owner, issue):
+    
     try:                 
-        SUPABASE_DB = SupabaseInterface().get_instance()
         # Fetch issue updates based on owner and issue number
         
         url = f"https://github.com/{owner}"        
         
         # import pdb;pdb.set_trace()
-        actual_owner = SUPABASE_DB.client.table('dmp_issues').select('id','title','repo_owner').like('repo_owner',owner).execute().data
+        actual_owner = await DmpAPIQueries.get_actual_owner_query(async_session, owner)
         repo_owner =actual_owner[0]['repo_owner'] if actual_owner else ""
         #create url with repo owner
         url = f"https://github.com/{repo_owner}" if repo_owner else None
         
-
-        dmp_issue_id = SUPABASE_DB.client.table('dmp_issues').select('*').eq('id', issue).execute()
-        if not dmp_issue_id.data:
+        dmp_issue_id = await DmpAPIQueries.get_dmp_issues(async_session, issue)
+        if not dmp_issue_id:
           print(f"url....{url}....{issue}")
           return jsonify({'error': "No data found in dmp_issue"}), 500
         
-        dmp_issue_id = dmp_issue_id.data[0]        
-        response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
+        dmp_issue_id = dmp_issue_id[0]        
 
-        if not response.data:
+        response = await DmpAPIQueries.get_dmp_issue_updates(async_session, dmp_issue_id['id'])    
+        if not response:
             print(f"dmp_issue_id....{response}....{dmp_issue_id}")
             return jsonify({'error': "No data found in dmp_issue_updates"}), 500
 
-        data = response.data
+        data = response
         
         final_data = []
         w_learn_url,w_goal_url,avg,cont_details,plain_text_body,plain_text_wurl = None,None,None,None,None,None
@@ -84,10 +93,11 @@ def get_issues_by_owner_id_v2(owner, issue):
             "weekly_learnings":week_data_formatter(plain_text_wurl,"Learnings")
         }
         
-        pr_Data = SUPABASE_DB.client.table('dmp_pr_updates').select('*').eq('dmp_id', dmp_issue_id['id']).execute()
+        
+        pr_Data = await DmpAPIQueries.get_pr_data(async_session, dmp_issue_id['id'])        
         transformed = {"pr_details": []}
-        if pr_Data.data:
-            for pr in pr_Data.data:
+        if pr_Data:
+            for pr in pr_Data:
                 pr_status = pr.get("status", "")
                 if pr_status == "closed" and pr.get("merged_at"):
                     pr_status = "merged"

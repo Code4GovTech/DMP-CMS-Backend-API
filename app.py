@@ -1,16 +1,34 @@
 from flask import Flask, jsonify,request,url_for
-from db import SupabaseInterface
 from collections import defaultdict
 from flasgger import Swagger
 import re,os,traceback
+# from query import PostgresORM
 from utils import *
 from flask_cors import CORS,cross_origin
 from v2_app import v2
+from flask_sqlalchemy import SQLAlchemy
+from models import db
+from shared_migrations.db import get_postgres_uri
+from shared_migrations.db.dmp_api import DmpAPIQueries
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
 
 
 app = Flask(__name__)
 CORS(app,supports_credentials=True)
 
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_postgres_uri()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize Async SQLAlchemy
+engine = create_async_engine(app.config['SQLALCHEMY_DATABASE_URI'], echo=False,poolclass=NullPool)
+async_session = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
+
+db.init_app(app)
 
 Swagger(app)
 
@@ -45,67 +63,12 @@ def greeting():
   
   
 
-
-@app.route('/get-data', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_data():
-    """
-    Fetch data from Supabase.
-    ---
-    responses:
-      200:
-        description: Data fetched successfully
-        schema:
-          type: array
-          items:
-            type: object
-      500:
-        description: Error fetching data
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-    """
-    try:
-        response = SupabaseInterface().get_instance().client.table('dmp_pr_updates').select('*').execute()
-        data = response.data
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 200
-
-
-
-@app.route('/v1/issues', methods=['GET'])
-@require_secret_key
-def v1get_issues():
-    try:        
-        response = SupabaseInterface().get_instance().client.table('dmp_issue_updates').select('*').execute()
-        data = response.data
-                
-        #group data based on issues
-        grouped_data = defaultdict(list)
-        for record in data:
-            issue_url = record['issue_url']
-            grouped_data[issue_url].append({
-                'id': record['id'],
-                'name': record['body_text']
-            })
-
-        result = [{'issue_url': issue_url, 'issues': issues} for issue_url, issues in grouped_data.items()]
-        grouped_data = group_by_owner(result)
-        return jsonify(grouped_data)
-      
-    except Exception as e:
-        error_traceback = traceback.format_exc()
-        return jsonify({'error': str(e), 'traceback': error_traceback}), 200
       
 
 @app.route('/issues', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_issues():
+# @cross_origin(supports_credentials=True)
+# @require_secret_key
+async def get_issues():
     """
     Fetch all issues and group by owner.
     ---
@@ -127,30 +90,28 @@ def get_issues():
               type: string
     """
     try:
-       # Fetch all issues with their details       
-        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('*, dmp_issues(*)').execute()
-        res = []
-                
-        for org in response.data:
-          obj = {}
-          issues = org['dmp_issues']
-          obj['org_id'] = org['id']
-          obj['org_name'] = org['name']
-          renamed_issues = [{"id": issue["id"], "name": issue["title"]} for issue in issues]
-          obj['issues'] = renamed_issues
-          
-          res.append(obj)
-                    
-        return jsonify({"issues": res})
+      # Fetch all issues with their details 
+      print('inside get all issues')           
+      data = await DmpAPIQueries.get_issue_query(async_session)
+      response = []
+      
+      for result in data:
+        response.append({
+            'org_id': result.org_id,
+            'org_name': result.org_name,
+            'issues': result.issues
+        })
+                                  
+      return jsonify({"issues": response})
       
     except Exception as e:
         error_traceback = traceback.format_exc()
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
 @app.route('/issues/<owner>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-@require_secret_key
-def get_issues_by_owner(owner):
+# @cross_origin(supports_credentials=True)
+# @require_secret_key
+async def get_issues_by_owner(owner):
     """
     Fetch organization details by owner's GitHub URL.
     ---
@@ -190,16 +151,15 @@ def get_issues_by_owner(owner):
               description: Error message
     """
     try:
-        # Construct the GitHub URL based on the owner parameter
-        org_link = f"https://github.com/{owner}"
-        
+               
         # Fetch organization details from dmp_orgs table
-        response = SupabaseInterface().get_instance().client.table('dmp_orgs').select('name', 'description').eq('name', owner).execute()
-        
-        if not response.data:
+        response = await DmpAPIQueries.get_issue_owner(async_session, owner)       
+        if not response:
             return jsonify({'error': "Organization not found"}), 404
-        
-        return jsonify(response.data)
+          
+        orgs_dict = [org.to_dict() for org in response]
+
+        return jsonify(orgs_dict)
       
     except Exception as e:
         error_traceback = traceback.format_exc()
@@ -243,7 +203,7 @@ def get_issues_by_owner_id(owner, issue):
   """
   try:         
     print('inside get issues')
-    SUPABASE_DB = SupabaseInterface().get_instance()
+    SUPABASE_DB = DmpAPIQueries.get_instance()
     response = SUPABASE_DB.client.table('dmp_issue_updates').select('*').eq('owner', owner).eq('issue_number', issue).execute()
     if not response.data:
         return jsonify({'error': "No data found"}), 200
