@@ -18,7 +18,7 @@ RUN --mount=type=ssh git submodule update --init --recursive
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Make port 5000 available to the world outside this container
-EXPOSE 5000
+EXPOSE 7000
 
 # Define environment variable
 ENV FLASK_APP=wsgi.py
