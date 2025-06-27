@@ -90,9 +90,13 @@ async def get_issues():
               type: string
     """
     try:
+      # Get year from query parameters
+      year = request.args.get('year')
+      year = int(year) if year and year.isdigit() else None
+      
       # Fetch all issues with their details 
-      print('inside get all issues')           
-      data = await DmpAPIQueries.get_issue_query(async_session)
+      print(f'inside get all issues for year: {year}' if year else 'inside get all issues (all years)')
+      data = await DmpAPIQueries.get_issue_query(async_session, year=year)
       response = []
       
       for result in data:
