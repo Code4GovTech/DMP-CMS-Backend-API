@@ -105,7 +105,8 @@ async def get_issues():
             'org_name': result.org_name,
             'issues': result.issues
         })
-                                  
+      # Sort response by org_name alphabetically
+      response.sort(key=lambda x: x['org_name'].lower())
       return jsonify({"issues": response})
       
     except Exception as e:
